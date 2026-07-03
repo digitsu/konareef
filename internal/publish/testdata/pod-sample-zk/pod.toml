@@ -1,0 +1,18 @@
+pod_spec_version = "0.1"
+
+[pod]
+name = "research-bot"
+version = "1.0.0"
+# Round-6 B4: explicit lineage_id so saltstore.LineageIDFromManifest
+# returns a deterministic 16-byte ID for this fixture. Required by
+# the Type-D salt provisioning path — EnsureSaltForTypeD derives the
+# lineage from the manifest, and the file-backed saltstore persists
+# salt.bin under ${KONAREEF_STATE_DIR}/typed/<lineage_id_hex>/.
+# Value below is the hex of 16 bytes of 0xAB.
+lineage_id = "abababababababababababababababab"
+
+[runtime]
+kind = "lobster"
+
+[directive]
+template = "./prompts/system.md"
