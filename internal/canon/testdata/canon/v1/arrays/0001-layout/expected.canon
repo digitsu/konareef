@@ -1,0 +1,15 @@
+#!konareef-toml/v1
+[a]
+empty = []
+multi = [
+"first",
+"second",
+"third"
+]
+ordered_ints = [
+3,
+1,
+2
+]
+single = ["only"]
+[_files]

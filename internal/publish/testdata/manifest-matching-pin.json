@@ -1,0 +1,10 @@
+{
+  "paygate_zk_domain": "paygate-zk.example.test",
+  "schedule_id": "fixture",
+  "circuits": [
+    {
+      "circuit_id": "konareef-pod-step-v1",
+      "vkey_sha256": "b0102e3e5f3ced3b4bd1e9d1a08ef35c5fce216b024beea399c4a51b95ece8e7"
+    }
+  ]
+}

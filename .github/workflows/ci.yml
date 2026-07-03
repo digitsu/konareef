@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./... -count=1
+
+  canonical-toml10-roundtrip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python3 - <<'PY'
+          import pathlib, sys, tomllib
+          root = pathlib.Path('internal/canon/testdata/canon/v1')
+          count = 0
+          for path in sorted(root.glob('*/*/expected.canon')):
+              try:
+                  tomllib.loads(path.read_text())
+              except Exception as err:
+                  print(f'FAIL {path}: {err}', file=sys.stderr)
+                  sys.exit(1)
+              count += 1
+          print(f'ok: {count} expected.canon files parsed under TOML 1.0')
+          PY

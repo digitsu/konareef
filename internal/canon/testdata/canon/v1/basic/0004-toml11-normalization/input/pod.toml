@@ -1,0 +1,10 @@
+[s]
+hex_escape = "\xff"
+e_escape = "\e"
+
+[i]
+neg_zero = -0
+hex_form = 0xFF
+
+[t]
+min_prec_utc = 2026-05-21T13:42Z

@@ -1,0 +1,409 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://konareef.ai/schemas/pod-toml/v0.1.json",
+  "title": "Pod Definition (pod.toml) — v0.1",
+  "description": "Schema for konareef pod.toml files. The authoritative copy lives in reef-core; the konareef TUI vendors it for `konareef pod validate`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pod_spec_version", "pod", "runtime", "directive"],
+  "properties": {
+    "pod_spec_version": {
+      "description": "Version of this spec. v0.1 tolerates breaking changes; v1.0 will be the stability marker.",
+      "const": "0.1"
+    },
+    "pod":          { "$ref": "#/$defs/pod" },
+    "runtime":      { "$ref": "#/$defs/runtime" },
+    "model":        { "$ref": "#/$defs/model" },
+    "hardware":     { "$ref": "#/$defs/hardware" },
+    "dependencies": { "$ref": "#/$defs/dependencies" },
+    "context":      { "$ref": "#/$defs/context" },
+    "inputs":       { "$ref": "#/$defs/inputs" },
+    "directive":    { "$ref": "#/$defs/directive" },
+    "output":       { "$ref": "#/$defs/output" },
+    "budget":       { "$ref": "#/$defs/budget" },
+    "wallet":       { "$ref": "#/$defs/wallet" },
+    "hooks":        { "$ref": "#/$defs/hooks" },
+    "marketplace":  { "$ref": "#/$defs/marketplace" }
+  },
+  "$defs": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "description": "MAJOR.MINOR.PATCH per semver.org."
+    },
+    "semver_constraint": {
+      "type": "string",
+      "pattern": "^[\\^~=<>0-9*].*",
+      "description": "Cargo-style constraint (e.g. ^0.4, ~1.2.0, >=0.3, *)."
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "byte_size": {
+      "type": "string",
+      "pattern": "^[0-9]+(?:\\.[0-9]+)?\\s*(KiB|MiB|GiB|TiB)$",
+      "description": "Binary byte size (e.g. '4GiB')."
+    },
+    "relative_path": {
+      "type": "string",
+      "pattern": "^\\./",
+      "description": "v0.1 supports only repo-relative paths starting with './'."
+    },
+
+    "pod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name":        { "$ref": "#/$defs/identifier" },
+        "version":     { "$ref": "#/$defs/semver" },
+        "authors":     { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "license":     { "type": "string" },
+        "description": { "type": "string" },
+        "homepage":    { "type": "string", "format": "uri" },
+        "tags":        { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "lineage_id":  {
+          "type": "string",
+          "description": "16-byte per-lineage salt-lookup key, encoded as 32-char lowercase hex.",
+          "pattern": "^[0-9a-f]{32}$"
+        }
+      }
+    },
+
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind":    { "$ref": "#/$defs/identifier", "description": "Name of a registered runtime (orca, lobster, pi-agent, kimi-cli, ...)." },
+        "version": { "$ref": "#/$defs/semver_constraint" }
+      }
+    },
+
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "name"],
+      "properties": {
+        "provider":      { "type": "string", "minLength": 1 },
+        "name":          { "type": "string", "minLength": 1 },
+        "max_tokens":    { "type": "integer", "minimum": 1 },
+        "temperature":   { "type": "number", "minimum": 0, "maximum": 2 },
+        "provider_opts": { "type": "object", "additionalProperties": true }
+      }
+    },
+
+    "hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cpu_cores": { "type": "integer", "minimum": 1 },
+        "memory":    { "$ref": "#/$defs/byte_size" },
+        "disk":      { "$ref": "#/$defs/byte_size" },
+        "gpu":       { "$ref": "#/$defs/hardware_gpu" }
+      }
+    },
+
+    "hardware_gpu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "count", "vram_gib"],
+      "properties": {
+        "kind":     { "type": "string", "enum": ["nvidia", "amd", "apple"] },
+        "count":    { "type": "integer", "minimum": 1 },
+        "vram_gib": { "type": "integer", "minimum": 1 },
+        "model":    { "type": "string" }
+      }
+    },
+
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "system":  { "type": "array", "items": { "type": "string" } },
+        "runtime": { "type": "array", "items": { "type": "string" } },
+        "secrets": {
+          "type": "array",
+          "description": "Names only — values come from the reef-core vault at spawn time.",
+          "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+          "uniqueItems": true
+        }
+      }
+    },
+
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "memory":  { "type": "array", "items": { "$ref": "#/$defs/context_memory" } },
+        "skills":  { "type": "array", "items": { "$ref": "#/$defs/context_skill" } },
+        "tools":   { "type": "array", "items": { "$ref": "#/$defs/context_tool" } },
+        "prompts": { "type": "array", "items": { "$ref": "#/$defs/context_prompt" } }
+      }
+    },
+
+    "context_memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind":     { "type": "string", "enum": ["openbrain", "file", "http", "inline"] },
+        "snapshot": { "type": "string" },
+        "path":     { "$ref": "#/$defs/relative_path" },
+        "url":      { "type": "string", "format": "uri" },
+        "content":  { "type": "string" }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "openbrain" } } }, "then": { "required": ["snapshot"] } },
+        { "if": { "properties": { "kind": { "const": "file"      } } }, "then": { "required": ["path"]     } },
+        { "if": { "properties": { "kind": { "const": "http"      } } }, "then": { "required": ["url"]      } },
+        { "if": { "properties": { "kind": { "const": "inline"    } } }, "then": { "required": ["content"]  } }
+      ]
+    },
+
+    "context_source": {
+      "type": "string",
+      "description": "Source ref. v0.1 supports only './relative/path'. Future: 'konareef/X#Y', 'github:owner/repo#path'.",
+      "minLength": 1
+    },
+
+    "context_skill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source":  { "$ref": "#/$defs/context_source" },
+        "version": { "$ref": "#/$defs/semver_constraint" }
+      }
+    },
+
+    "context_tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source": { "$ref": "#/$defs/context_source" },
+        "config": { "type": "object", "additionalProperties": true }
+      }
+    },
+
+    "context_prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "path"],
+      "properties": {
+        "role": { "type": "string", "enum": ["system", "user_template", "assistant_seed"] },
+        "path": { "$ref": "#/$defs/relative_path" }
+      }
+    },
+
+    "inputs": {
+      "type": "object",
+      "description": "Map of input name → input descriptor.",
+      "propertyNames": { "$ref": "#/$defs/identifier" },
+      "additionalProperties": { "$ref": "#/$defs/input_def" }
+    },
+
+    "input_def": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type":        { "type": "string", "enum": ["string", "int", "float", "bool", "enum"] },
+        "required":    { "type": "boolean" },
+        "description": { "type": "string" }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "type":    { "const": "string" },
+            "default": { "type": "string" },
+            "pattern": { "type": "string" }
+          }
+        },
+        {
+          "properties": {
+            "type":    { "const": "int" },
+            "default": { "type": "integer" },
+            "min":     { "type": "integer" },
+            "max":     { "type": "integer" }
+          }
+        },
+        {
+          "properties": {
+            "type":    { "const": "float" },
+            "default": { "type": "number" },
+            "min":     { "type": "number" },
+            "max":     { "type": "number" }
+          }
+        },
+        {
+          "properties": {
+            "type":    { "const": "bool" },
+            "default": { "type": "boolean" }
+          }
+        },
+        {
+          "properties": {
+            "type":    { "const": "enum" },
+            "values":  { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true },
+            "default": { "type": "string" }
+          },
+          "required": ["values"]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+
+    "directive": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "task":           { "type": "string", "minLength": 1, "description": "Inline directive. Mutually exclusive with `template`." },
+        "template":       { "$ref": "#/$defs/relative_path", "description": "Path to a Mustache-templated directive file." },
+        "max_iterations": { "type": "integer", "minimum": 1 },
+        "tools_allowed":  { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "tools_denied":   { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      },
+      "oneOf": [
+        { "required": ["task"]     },
+        { "required": ["template"] }
+      ]
+    },
+
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format":       { "type": "string" },
+        "success":      { "type": "array", "items": { "$ref": "#/$defs/predicate" } },
+        "failure":      { "type": "array", "items": { "$ref": "#/$defs/predicate" } },
+        "deliverables": { "type": "array", "items": { "$ref": "#/$defs/deliverable" } }
+      }
+    },
+
+    "predicate": {
+      "type": "object",
+      "required": ["kind"],
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "file_exists" },
+            "path": { "$ref": "#/$defs/relative_path" }
+          },
+          "required": ["kind", "path"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind":  { "const": "min_words" },
+            "path":  { "$ref": "#/$defs/relative_path" },
+            "count": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["kind", "path", "count"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind":    { "const": "contains_regex" },
+            "path":    { "$ref": "#/$defs/relative_path" },
+            "pattern": { "type": "string" }
+          },
+          "required": ["kind", "path", "pattern"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind":  { "const": "timeout_seconds" },
+            "value": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["kind", "value"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "budget_exhausted" }
+          },
+          "required": ["kind"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "tool_called" },
+            "tool": { "type": "string", "minLength": 1 }
+          },
+          "required": ["kind", "tool"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind":   { "const": "custom_script" },
+            "script": { "$ref": "#/$defs/relative_path" }
+          },
+          "required": ["kind", "script"]
+        }
+      ]
+    },
+
+    "deliverable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path":        { "$ref": "#/$defs/relative_path" },
+        "description": { "type": "string" },
+        "optional":    { "type": "boolean" }
+      }
+    },
+
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_sats":          { "type": "integer", "minimum": 0 },
+        "per_call_cap_sats": { "type": "integer", "minimum": 0 },
+        "daily_cap_sats":    { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "wallet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy"],
+      "properties": {
+        "strategy": { "type": "string", "enum": ["fresh", "reuse", "pooled"] },
+        "reuse":    { "type": "string", "description": "Required when strategy = reuse." }
+      },
+      "if":   { "properties": { "strategy": { "const": "reuse" } } },
+      "then": { "required": ["reuse"] }
+    },
+
+    "hooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pre_spawn":  { "$ref": "#/$defs/relative_path" },
+        "post_spawn": { "$ref": "#/$defs/relative_path" },
+        "on_success": { "$ref": "#/$defs/relative_path" },
+        "on_failure": { "$ref": "#/$defs/relative_path" }
+      }
+    },
+
+    "marketplace": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "listed":      { "type": "boolean" },
+        "price_model": { "type": "string", "enum": ["per_run", "subscription", "free"] },
+        "price_sats":  { "type": "integer", "minimum": 0 },
+        "preview_url": { "type": "string", "format": "uri" },
+        "icon":        { "$ref": "#/$defs/relative_path" },
+        "screenshots": { "type": "array", "items": { "$ref": "#/$defs/relative_path" } },
+        "categories":  { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    }
+  }
+}

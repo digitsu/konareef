@@ -1,0 +1,38 @@
+{
+  "description": "Part C (PRD 4 \u00a74.1.4 + PRD 1 \u00a75.4, POSEIDON variant post Lever-1): t_root from ordered proof_tool_calls rows (sorted by call_index ASC). record_bytes_i = ULEB128(len(tool_id)) || tool_id_utf8 || args_hash(32B) || result_hash(32B) || ts(8B BE u64). leaf_i = poseidon_leaf_hash(record_to_field(record_bytes_i)) over Pallas-Fq (neptune 13.0.0, param artifact 4aeda63c...). Tree uses poseidon internal_hash; Z = poseidon_leaf_hash(record_to_field(empty)). t_root = poseidon_internal_hash(length_element(0x03,|T_log|), tree_root_top). Regenerated 2026-06-16 from the independent Python oracle scripts/poseidon_pallas.py; cross-checked vs the 3 Rust golden t_roots (troot_poseidon.rs).",
+  "expected": {
+    "leaf_hashes": [
+      "9863395b2f97e01c07db993ca2ae06be80104926a7c099ec061cd603227de913",
+      "08a0d31b439bb3a7573067d6722451e2c95f23eaf9f9eb4bfe72bb8e74eeff30",
+      "c2f8b8ae4a92d8a7dde52dbc1f9d3b68db81203ca4e2243d956927bf85963e3b"
+    ],
+    "t_root": "1964dac9abd22e1380e02cee1dd48740b6b2bca49da72d3ddfd6652ca713200a",
+    "verdict": "accept"
+  },
+  "id": "tlog-from-db-rows",
+  "inputs": {
+    "rows": [
+      {
+        "args_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+        "call_index": 0,
+        "result_hash": "c29aa59cafc9e2437b2c9f0c8772593e63c5fe7b63dee5f9f1b1a8cc3369f919",
+        "tool_id": "tool_a",
+        "ts_us": 1748736000000000
+      },
+      {
+        "args_hash": "72b2ac744cd525b6ed060ef36ebf16496b2db6fed6ab44c82b292976b3338349",
+        "call_index": 1,
+        "result_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+        "tool_id": "tool_b",
+        "ts_us": 1748736001000000
+      },
+      {
+        "args_hash": "c29aa59cafc9e2437b2c9f0c8772593e63c5fe7b63dee5f9f1b1a8cc3369f919",
+        "call_index": 2,
+        "result_hash": "72b2ac744cd525b6ed060ef36ebf16496b2db6fed6ab44c82b292976b3338349",
+        "tool_id": "tool_c",
+        "ts_us": 1748736002000000
+      }
+    ]
+  }
+}

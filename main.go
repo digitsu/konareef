@@ -1,0 +1,2004 @@
+// konareef — a TUI harness for agentic pods.
+//
+// Connects to a reef-core instance and provides terminal-native
+// monitoring and management of orca-pods and lobster-pods.
+//
+// Usage:
+//
+//	konareef                                     # start the TUI (default)
+//	konareef --server http://host:4000           # override reef-core URL
+//	konareef smoke --token <base64>              # non-TUI end-to-end smoke test
+//	konareef smoke --lifecycle --token <base64>  # full lifecycle smoke test
+//	konareef pod validate <pod.toml>             # local schema validation
+//	KONAREEF_TOKEN=... konareef smoke            # same, via env var
+package main
+
+import (
+	"context"
+	cryptorand "crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/fxamacker/cbor/v2"
+
+	"github.com/digitsu/konareef/internal/api"
+	"github.com/digitsu/konareef/internal/identity"
+	"github.com/digitsu/konareef/internal/install"
+	"github.com/digitsu/konareef/internal/pod"
+	"github.com/digitsu/konareef/internal/publish"
+	"github.com/digitsu/konareef/internal/saltstore"
+	"github.com/digitsu/konareef/internal/smoke"
+	"github.com/digitsu/konareef/internal/tui"
+	"github.com/digitsu/konareef/internal/verify"
+	"github.com/digitsu/konareef/internal/vkeystore"
+	"github.com/digitsu/konareef/internal/ws"
+	"golang.org/x/term"
+)
+
+// reorderFlagsFirst rearranges args so flag arguments come before any
+// positional arguments. Go's flag.Parse stops at the first non-flag arg,
+// which silently drops flags written after a positional (`pod init my-pod
+// --dir X`). This helper restores the more-common Unix convention of
+// allowing either order.
+//
+// Conservative behaviour:
+//   - Flags are recognised by a leading "-".
+//   - A flag's value is only consumed when the flag is in `--foo value`
+//     form (no '=') AND the following arg does not itself start with "-".
+//   - This is safe for subcommands that take only string-valued flags.
+//     Mixing bool flags would risk consuming a positional as the bool's
+//     value; runPodInit currently has only string flags.
+func reorderFlagsFirst(args []string) []string {
+	var flags []string
+	var positional []string
+	for cursor := 0; cursor < len(args); cursor++ {
+		current := args[cursor]
+		if strings.HasPrefix(current, "-") {
+			flags = append(flags, current)
+			if !strings.Contains(current, "=") &&
+				cursor+1 < len(args) &&
+				!strings.HasPrefix(args[cursor+1], "-") {
+				flags = append(flags, args[cursor+1])
+				cursor++
+			}
+			continue
+		}
+		positional = append(positional, current)
+	}
+	return append(flags, positional...)
+}
+
+func main() {
+	// Apply env-var feature flags early so every subcommand path sees
+	// the correct gate state. identity.LoadEnv() reads
+	// KONAREEF_STRICT_DER_GATE=true → StrictDerGateEnabled (P1.4).
+	identity.LoadEnv()
+
+	if len(os.Args) >= 2 && os.Args[1] == "smoke" {
+		runSmoke(os.Args[2:])
+		return
+	}
+	if len(os.Args) >= 2 && os.Args[1] == "pod" {
+		runPod(os.Args[2:])
+		return
+	}
+	if len(os.Args) >= 2 && os.Args[1] == "install" {
+		runInstall(os.Args[2:])
+		return
+	}
+	if len(os.Args) >= 2 && os.Args[1] == "verify" {
+		runVerify(os.Args[2:])
+		return
+	}
+	if len(os.Args) >= 2 && os.Args[1] == "salt" {
+		runSalt(os.Args[2:])
+		return
+	}
+
+	runTUI(os.Args[1:])
+}
+
+// runSalt dispatches a top-level `konareef salt` subcommand. Type-D
+// pod salt management is a TOP-LEVEL command (NOT under `pod`) because
+// it manages cross-pod secret state in the OS keyring / state dir, not
+// pod-worktree state.
+func runSalt(args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: konareef salt <subcommand>")
+		fmt.Fprintln(os.Stderr, "  export <uuid>          export one lineage salt (passphrase-encrypted blob to stdout)")
+		fmt.Fprintln(os.Stderr, "  export --all           export all lineages present in the active backend")
+		fmt.Fprintln(os.Stderr, "  import <blob>          import a blob (use '-' for stdin)")
+		fmt.Fprintln(os.Stderr, "  status                 list lineages + active backend")
+		fmt.Fprintln(os.Stderr, "  delete <uuid> --yes-i-want-to-lose-this-pod")
+		os.Exit(2)
+	}
+	switch args[0] {
+	case "export":
+		runSaltExport(args[1:])
+	case "import":
+		runSaltImport(args[1:])
+	case "status":
+		runSaltStatus(args[1:])
+	case "delete":
+		runSaltDelete(args[1:])
+	default:
+		fmt.Fprintf(os.Stderr, "unknown salt subcommand: %q\n", args[0])
+		os.Exit(2)
+	}
+}
+
+// runSaltExport implements `konareef salt export <uuid>|--all`.
+func runSaltExport(args []string) {
+	fs := flag.NewFlagSet("salt export", flag.ExitOnError)
+	all := fs.Bool("all", false, "export every lineage present in the active backend")
+	output := fs.String("o", "", "write blob to this file instead of stdout")
+	armor := fs.Bool("armor", false, "emit base64-armored output between PEM-style markers")
+	fs.Parse(reorderFlagsFirst(args))
+
+	backend, err := saltstore.Resolve(defaultResolveOpts())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "salt export:", err)
+		os.Exit(1)
+	}
+	var lids [][16]byte
+	if *all {
+		lids, err = backend.List()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "salt export: list:", err)
+			os.Exit(1)
+		}
+	} else if fs.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "usage: konareef salt export <uuid> | --all")
+		os.Exit(2)
+	} else {
+		raw, err := hex.DecodeString(strings.ReplaceAll(fs.Arg(0), "-", ""))
+		if err != nil || len(raw) != 16 {
+			fmt.Fprintln(os.Stderr, "salt export: lineage id must be 32 hex chars (UUID)")
+			os.Exit(2)
+		}
+		var lid [16]byte
+		copy(lid[:], raw)
+		lids = [][16]byte{lid}
+	}
+
+	entries := make([]saltstore.Entry, 0, len(lids))
+	for _, lid := range lids {
+		salt, err := backend.Get(lid)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "salt export: get %x: %v\n", lid, err)
+			os.Exit(1)
+		}
+		entries = append(entries, saltstore.Entry{LineageID: lid, Salt: salt})
+	}
+
+	passphrase, err := readSaltPassphrase(true)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "salt export:", err)
+		os.Exit(1)
+	}
+	blob, err := saltstore.ExportBlob(entries, passphrase)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "salt export:", err)
+		os.Exit(1)
+	}
+	if *armor {
+		blob = saltstore.ArmorBlob(blob)
+	}
+	if *output != "" {
+		if err := os.WriteFile(*output, blob, 0o600); err != nil {
+			fmt.Fprintln(os.Stderr, "salt export: write:", err)
+			os.Exit(1)
+		}
+		fmt.Fprintf(os.Stderr, "wrote %d-byte blob to %s (mode 0600)\n", len(blob), *output)
+		return
+	}
+	_, _ = os.Stdout.Write(blob)
+}
+
+// runSaltImport implements `konareef salt import <blob-path>`.
+func runSaltImport(args []string) {
+	fs := flag.NewFlagSet("salt import", flag.ExitOnError)
+	force := fs.Bool("force", false, "overwrite existing entries on lineage_id collision")
+	fs.Parse(reorderFlagsFirst(args))
+	if fs.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "usage: konareef salt import <blob-path> [--force]    ('-' reads stdin)")
+		os.Exit(2)
+	}
+	var blob []byte
+	if fs.Arg(0) == "-" {
+		var err error
+		blob, err = io.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "salt import: stdin:", err)
+			os.Exit(1)
+		}
+	} else {
+		var err error
+		blob, err = os.ReadFile(fs.Arg(0))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "salt import: read:", err)
+			os.Exit(1)
+		}
+	}
+	passphrase, err := readSaltPassphrase(false)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "salt import:", err)
+		os.Exit(1)
+	}
+	entries, err := saltstore.ImportBlob(blob, passphrase)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "salt import:", err)
+		os.Exit(1)
+	}
+	backend, err := saltstore.Resolve(defaultResolveOpts())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "salt import:", err)
+		os.Exit(1)
+	}
+	for _, e := range entries {
+		err := backend.Put(e.LineageID, e.Salt)
+		if errors.Is(err, saltstore.ErrSaltAlreadyExists) {
+			if !*force {
+				fmt.Fprintf(os.Stderr, "salt import: lineage %x already exists; --force to overwrite\n", e.LineageID)
+				continue
+			}
+			_ = backend.Delete(e.LineageID)
+			if err := backend.Put(e.LineageID, e.Salt); err != nil {
+				fmt.Fprintf(os.Stderr, "salt import: force-overwrite %x: %v\n", e.LineageID, err)
+				os.Exit(1)
+			}
+		} else if err != nil {
+			fmt.Fprintf(os.Stderr, "salt import: put %x: %v\n", e.LineageID, err)
+			os.Exit(1)
+		}
+	}
+	fmt.Printf("imported %d lineage(s) into backend %q\n", len(entries), backend.Name())
+}
+
+// runSaltStatus implements `konareef salt status`.
+func runSaltStatus(_ []string) {
+	backend, err := saltstore.Resolve(defaultResolveOpts())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "salt status:", err)
+		os.Exit(1)
+	}
+	lids, err := backend.List()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "salt status: list:", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Active backend: %s\n", backend.Name())
+	fmt.Printf("Lineages present: %d\n", len(lids))
+	for _, lid := range lids {
+		fmt.Printf("  %s\n", hex.EncodeToString(lid[:]))
+	}
+}
+
+// runSaltDelete implements `konareef salt delete <uuid> --yes-i-want-to-lose-this-pod`.
+func runSaltDelete(args []string) {
+	fs := flag.NewFlagSet("salt delete", flag.ExitOnError)
+	consent := fs.Bool("yes-i-want-to-lose-this-pod", false, "required to confirm the destructive action")
+	fs.Parse(reorderFlagsFirst(args))
+	if fs.NArg() < 1 || !*consent {
+		fmt.Fprintln(os.Stderr, "usage: konareef salt delete <uuid> --yes-i-want-to-lose-this-pod")
+		fmt.Fprintln(os.Stderr, "(Removing a Type-D salt is irreversible: the pod's witness becomes unrecoverable.)")
+		os.Exit(2)
+	}
+	raw, err := hex.DecodeString(strings.ReplaceAll(fs.Arg(0), "-", ""))
+	if err != nil || len(raw) != 16 {
+		fmt.Fprintln(os.Stderr, "salt delete: lineage id must be 32 hex chars (UUID)")
+		os.Exit(2)
+	}
+	var lid [16]byte
+	copy(lid[:], raw)
+	backend, err := saltstore.Resolve(defaultResolveOpts())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "salt delete:", err)
+		os.Exit(1)
+	}
+	if err := backend.Delete(lid); err != nil {
+		fmt.Fprintln(os.Stderr, "salt delete:", err)
+		os.Exit(1)
+	}
+	fmt.Printf("deleted lineage %x from backend %q\n", lid, backend.Name())
+}
+
+// defaultResolveOpts builds the saltstore.ResolveOpts the CLI uses for
+// every salt-touching subcommand. It wires:
+//
+//   - EncryptedFilePassphraseProvider → cliPassphraseProvider, so the
+//     encrypted-file backend can prompt on first access when no keychain
+//     is available. The provider's CanProvideNow() probe lets the
+//     resolver skip the encrypted-file tier in non-interactive contexts
+//     (no TTY + no KONAREEF_SALT_PASSPHRASE) instead of selecting it
+//     and dying at first use — that is what makes the plain-file
+//     opt-in fallback actually reachable.
+//   - PlainFileOptIn → KONAREEF_ALLOW_PLAINTEXT_SALT=1 (or "true"),
+//     gating the plain-file fallback behind an explicit user decision.
+//
+// SECURITY: without the opt-in env var, a host with no keychain AND no
+// usable encrypted-file passphrase source will fail closed with
+// ErrSaltStorageUnavailable rather than silently writing salts in
+// cleartext to disk.
+func defaultResolveOpts() saltstore.ResolveOpts {
+	return saltstore.ResolveOpts{
+		EncryptedFilePassphraseProvider: cliPassphraseProvider{},
+		PlainFileOptIn:                  plaintextSaltOptIn(),
+		// KONAREEF_DISABLE_KEYCHAIN_BACKEND lets hermetic CLI tests
+		// (and headless CI environments) drop the keychain tier so
+		// the resolver never reaches a macOS UI prompt that would
+		// block a non-interactive subprocess.
+		DisableKeychain: envBoolTruthy("KONAREEF_DISABLE_KEYCHAIN_BACKEND"),
+	}
+}
+
+// envBoolTruthy returns true when the named env var is set to a
+// truthy lower-cased value ("1", "true", "yes"). Empty is false.
+func envBoolTruthy(name string) bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv(name)))
+	return v == "1" || v == "true" || v == "yes"
+}
+
+// cliPassphraseProvider implements saltstore.PassphraseProvider for the
+// CLI: it reads KONAREEF_SALT_PASSPHRASE when present, otherwise
+// prompts on a real TTY. CanProvideNow honestly reports whether either
+// source is currently available, so the resolver can skip the
+// encrypted-file tier when the host is headless and no env var is
+// configured.
+type cliPassphraseProvider struct{}
+
+// Get implements saltstore.PassphraseProvider.
+func (cliPassphraseProvider) Get() ([]byte, error) {
+	return readSaltPassphrase(false)
+}
+
+// CanProvideNow implements saltstore.PassphraseProvider. It returns
+// true when KONAREEF_SALT_PASSPHRASE is set (non-empty) OR stdin is a
+// terminal that can host a passphrase prompt. The check is
+// side-effect-free: no prompting, no I/O beyond an env lookup and a
+// TTY isatty probe.
+func (cliPassphraseProvider) CanProvideNow() bool {
+	if os.Getenv("KONAREEF_SALT_PASSPHRASE") != "" {
+		return true
+	}
+	return term.IsTerminal(int(os.Stdin.Fd()))
+}
+
+// plaintextSaltOptIn reports whether the user opted into the
+// plain-file salt backend via KONAREEF_ALLOW_PLAINTEXT_SALT. The check
+// is permissive ("1" or any value that parses as truthy lowercase
+// "true") so a curious user can flip it without reading the docs;
+// the danger is documented in the salt-storage runbook.
+func plaintextSaltOptIn() bool {
+	v := strings.ToLower(strings.TrimSpace(os.Getenv("KONAREEF_ALLOW_PLAINTEXT_SALT")))
+	return v == "1" || v == "true" || v == "yes"
+}
+
+// readSaltPassphrase reads a passphrase from the TTY (or from
+// KONAREEF_SALT_PASSPHRASE for non-interactive automation). When
+// confirm is true the user must enter the same passphrase twice
+// (export path). Returns an error if neither source is available.
+func readSaltPassphrase(confirm bool) ([]byte, error) {
+	if v := os.Getenv("KONAREEF_SALT_PASSPHRASE"); v != "" {
+		return []byte(v), nil
+	}
+	if !term.IsTerminal(int(os.Stdin.Fd())) {
+		return nil, errors.New("no TTY and KONAREEF_SALT_PASSPHRASE unset; refusing to read passphrase from a non-tty stdin")
+	}
+	fmt.Fprint(os.Stderr, "Passphrase: ")
+	pw, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Fprintln(os.Stderr)
+	if err != nil {
+		return nil, fmt.Errorf("read passphrase: %w", err)
+	}
+	if confirm {
+		fmt.Fprint(os.Stderr, "Confirm passphrase: ")
+		pw2, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Fprintln(os.Stderr)
+		if err != nil {
+			return nil, fmt.Errorf("read confirm: %w", err)
+		}
+		if string(pw) != string(pw2) {
+			return nil, errors.New("passphrases do not match")
+		}
+	}
+	if len(pw) == 0 {
+		return nil, errors.New("empty passphrase")
+	}
+	return pw, nil
+}
+
+// runPod dispatches to a pod-related subcommand. The dispatcher is
+// structured so additional subcommands (spawn, install, publish) can be
+// slotted in without restructuring main.
+func runPod(args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: konareef pod <subcommand>")
+		fmt.Fprintln(os.Stderr, "  init <name>            scaffold a new pod directory")
+		fmt.Fprintln(os.Stderr, "  validate <path>        validate a pod.toml against the v0.1 schema")
+		fmt.Fprintln(os.Stderr, "  identity <subcommand>  manage the publisher signing identity")
+		fmt.Fprintln(os.Stderr, "  publish <dir>          sign and submit a pod to reef-core")
+		fmt.Fprintln(os.Stderr, "  trust <handle>         record a publisher pubkey as locally trusted")
+		os.Exit(2)
+	}
+	switch args[0] {
+	case "init":
+		runPodInit(args[1:])
+	case "validate":
+		runPodValidate(args[1:])
+	case "identity":
+		runPodIdentity(args[1:])
+	case "publish":
+		runPodPublish(args[1:])
+	case "trust":
+		runPodTrust(args[1:])
+	default:
+		fmt.Fprintf(os.Stderr, "unknown pod subcommand: %q\n", args[0])
+		os.Exit(2)
+	}
+}
+
+// runPodInit scaffolds a new pod directory with a starter pod.toml,
+// prompts/system.md placeholder, and README. Exits 0 on success, 1 on
+// init errors, 2 on usage errors.
+func runPodInit(args []string) {
+	fs := flag.NewFlagSet("pod init", flag.ExitOnError)
+	runtime := fs.String("runtime", "", "runtime kind written into [runtime].kind (default: lobster)")
+	model := fs.String("model", "", "model spec as <provider>/<name> (default: anthropic/claude-sonnet-4-5)")
+	dir := fs.String("dir", "", "output directory (default: ./<name>)")
+	fs.Parse(reorderFlagsFirst(args))
+	if fs.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "usage: konareef pod init <name> [--runtime kind] [--model provider/name] [--dir path]")
+		os.Exit(2)
+	}
+	name := fs.Arg(0)
+
+	code := runPodInitCore(os.Stdout, os.Stderr, pod.InitOptions{
+		Name:    name,
+		Dir:     *dir,
+		Runtime: *runtime,
+		Model:   *model,
+	})
+	if code != 0 {
+		os.Exit(code)
+	}
+}
+
+// runPodInitTestHook, when non-nil, replaces the saltstore.Resolve()
+// call inside runPodInitCore so a test can inject a failing backend
+// and assert the rollback contract (no pod.toml / no pod directory
+// after a salt-persist failure). Production code MUST leave this nil.
+var runPodInitTestHook func() (saltstore.Backend, error)
+
+// runPodInitCore is the testable core of `konareef pod init`. It
+// enforces the B1+B2 genesis-salt contract atomically:
+//
+//  1. generate a 32-byte CSPRNG salt in memory,
+//  2. scaffold the pod into a TEMPORARY directory next to the final
+//     destination,
+//  3. read the freshly-baked lineage_id from the temp scaffold,
+//  4. persist (lineage_id, salt) via the resolved saltstore backend,
+//  5. os.Rename(temp, final) — the pod directory only materialises
+//     AFTER the salt is durable,
+//  6. print the user-facing recovery notice.
+//
+// SECURITY: on ANY failure between steps 2 and 4 the temp directory is
+// removed; on a step-4 failure the temp directory is also removed so
+// the user never sees a pod.toml whose lineage_id has no salt persisted
+// behind it (a previous regression that left "valid-looking" pods on
+// disk that could not be re-spawned).
+//
+// Returns 0 on full success, 1 on any failure. Writes diagnostics to
+// stderr; writes the success summary + recovery notice to stdout.
+func runPodInitCore(stdout, stderr *os.File, opts pod.InitOptions) int {
+	finalDir := opts.Dir
+	if finalDir == "" {
+		finalDir = "./" + opts.Name
+	}
+	// Pre-flight: refuse early if the final destination already
+	// exists. pod.Init would also reject it, but we want a clean error
+	// before we even touch the salt backend.
+	if _, err := os.Stat(finalDir); err == nil {
+		fmt.Fprintf(stderr, "init error: directory %s already exists; pick a different name or remove it first\n", finalDir)
+		return 1
+	} else if !os.IsNotExist(err) {
+		fmt.Fprintln(stderr, "init: stat destination:", err)
+		return 1
+	}
+
+	// CSPRNG-generate the 32-byte salt in memory before any
+	// filesystem work. If the CSPRNG read fails the pod tree is
+	// never created.
+	var salt [32]byte
+	if _, err := cryptorand.Read(salt[:]); err != nil {
+		fmt.Fprintln(stderr, "init: generate genesis salt:", err)
+		return 1
+	}
+
+	// Scaffold into a sibling temp directory so we can atomically
+	// rename to finalDir on success, or os.RemoveAll on any failure
+	// between here and Backend.Put.
+	parent := filepath.Dir(finalDir)
+	if err := os.MkdirAll(parent, 0o755); err != nil {
+		fmt.Fprintln(stderr, "init: mkdir parent:", err)
+		return 1
+	}
+	tempDir, err := os.MkdirTemp(parent, ".konareef-init-*")
+	if err != nil {
+		fmt.Fprintln(stderr, "init: mkdir tempdir:", err)
+		return 1
+	}
+	// Tempdir is now ours; ensure it is removed on any failure path.
+	rollback := func() {
+		if rmErr := os.RemoveAll(tempDir); rmErr != nil {
+			fmt.Fprintf(stderr, "init: rollback warning: %v\n", rmErr)
+		}
+	}
+	// pod.Init rejects an existing destination — we need to delete the
+	// freshly-created tempdir so pod.Init can write into it itself.
+	if err := os.Remove(tempDir); err != nil {
+		rollback()
+		fmt.Fprintln(stderr, "init: clear tempdir:", err)
+		return 1
+	}
+	tempOpts := opts
+	tempOpts.Dir = tempDir
+	written, err := pod.Init(tempOpts)
+	if err != nil {
+		rollback()
+		fmt.Fprintln(stderr, "init error:", err)
+		return 1
+	}
+
+	// Read the lineage_id pod.Init baked into the temp scaffold's
+	// pod.toml. This is the key we will persist the salt under.
+	spec, err := pod.ParseFile(filepath.Join(tempDir, "pod.toml"))
+	if err != nil {
+		rollback()
+		fmt.Fprintln(stderr, "init: re-parse scaffolded pod.toml:", err)
+		return 1
+	}
+	lid, err := saltstore.LineageIDFromManifest(&spec)
+	if err != nil {
+		rollback()
+		fmt.Fprintln(stderr, "init: lineage_id missing from scaffolded pod.toml:", err)
+		return 1
+	}
+
+	// Resolve the backend and persist BEFORE the pod tree is moved
+	// into its final location. INVARIANT: a visible pod.toml at
+	// finalDir is only possible AFTER Backend.Put returns nil.
+	var backend saltstore.Backend
+	if runPodInitTestHook != nil {
+		backend, err = runPodInitTestHook()
+	} else {
+		backend, err = saltstore.Resolve(defaultResolveOpts())
+	}
+	if err != nil {
+		rollback()
+		fmt.Fprintln(stderr, "init: resolve salt backend:", err)
+		return 1
+	}
+	if err := backend.Put(lid, salt); err != nil {
+		rollback()
+		fmt.Fprintf(stderr, "init: persist genesis salt for lineage %x: %v\n", lid, err)
+		return 1
+	}
+
+	// Salt is durable; finalise the pod tree.
+	if err := os.Rename(tempDir, finalDir); err != nil {
+		// Salt was persisted but we cannot show the user a pod
+		// directory; back out the salt entry so the next attempt
+		// can retry cleanly.
+		_ = backend.Delete(lid)
+		rollback()
+		fmt.Fprintln(stderr, "init: finalise pod directory:", err)
+		return 1
+	}
+
+	// Rewrite the written-file paths from the temp prefix to the
+	// final destination so the user-facing output references the
+	// real on-disk paths.
+	rewritten := make([]string, 0, len(written))
+	for _, path := range written {
+		rel, relErr := filepath.Rel(tempDir, path)
+		if relErr != nil {
+			rewritten = append(rewritten, path)
+			continue
+		}
+		rewritten = append(rewritten, filepath.Join(finalDir, rel))
+	}
+
+	fmt.Fprintf(stdout, "created pod %q (%d files)\n", opts.Name, len(rewritten))
+	for _, path := range rewritten {
+		fmt.Fprintln(stdout, "  ", path)
+	}
+	if len(rewritten) > 0 {
+		fmt.Fprintf(stdout, "\nNext: konareef pod validate %s\n", rewritten[0])
+		fmt.Fprintln(stdout)
+		// INVARIANT: pod.Init + Backend.Put + Rename all succeeded → the
+		// salt is now persisted in the resolved backend AND the pod
+		// tree is visible. The recovery notice is the user-facing
+		// contract that the salt is durable.
+		fmt.Fprintln(stdout, "If this is a Type-D (--disclosure-policy D) pod, your 32-byte salt")
+		fmt.Fprintln(stdout, "is now persisted via `konareef salt`. Run `konareef salt export`")
+		fmt.Fprintln(stdout, "to back up the salt — loss is irrecoverable.")
+	}
+	return 0
+}
+
+// runPodValidate validates a pod.toml file against the embedded v0.1 schema
+// and prints results. Exits 0 when the file is valid, 1 on validation issues
+// or I/O errors, 2 on usage errors.
+func runPodValidate(args []string) {
+	fs := flag.NewFlagSet("pod validate", flag.ExitOnError)
+	fs.Parse(args)
+	if fs.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "usage: konareef pod validate <pod.toml-path>")
+		os.Exit(2)
+	}
+	path := fs.Arg(0)
+
+	issues, err := pod.ValidateFile(path)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "validate error:", err)
+		os.Exit(1)
+	}
+	if len(issues) == 0 {
+		fmt.Printf("%s: valid\n", path)
+		return
+	}
+	fmt.Fprintf(os.Stderr, "%s: %d validation issue(s)\n", path, len(issues))
+	for _, issue := range issues {
+		fmt.Fprintln(os.Stderr, " -", issue)
+	}
+	os.Exit(1)
+}
+
+// runPodIdentity dispatches to a `pod identity` subcommand. The
+// surface today is `create` and `show`; encrypted export/import lands
+// in a follow-up commit (the publish path needs only create + show).
+func runPodIdentity(args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: konareef pod identity <subcommand>")
+		fmt.Fprintln(os.Stderr, "  create [--handle <h>]                       generate a new publisher keypair")
+		fmt.Fprintln(os.Stderr, "  show                                        print the current handle and public key")
+		fmt.Fprintln(os.Stderr, "  export --output <path>                      passphrase-encrypted backup of the identity (prompts on TTY)")
+		fmt.Fprintln(os.Stderr, "  import <path>                               restore the identity from an encrypted backup (prompts on TTY)")
+		fmt.Fprintln(os.Stderr, "  rotate [--reason <text>] [--server URL]     generate a new keypair, sign a rotation attestation, submit to reef-core")
+		os.Exit(2)
+	}
+	switch args[0] {
+	case "create":
+		runPodIdentityCreate(args[1:])
+	case "show":
+		runPodIdentityShow(args[1:])
+	case "export":
+		runPodIdentityExport(args[1:])
+	case "import":
+		runPodIdentityImport(args[1:])
+	case "rotate":
+		runPodIdentityRotate(args[1:])
+	default:
+		fmt.Fprintf(os.Stderr, "unknown identity subcommand: %q\n", args[0])
+		os.Exit(2)
+	}
+}
+
+// runPodIdentityCreate generates a fresh secp256k1 keypair, binds it
+// to --handle, and saves it to <home>/.konareef/identity.json (mode
+// 0600). An existing identity is preserved unless --force is given —
+// losing a key means losing control of the bound handle.
+//
+// Exits 0 on success, 1 on I/O / key-gen failure, 2 on usage error.
+func runPodIdentityCreate(args []string) {
+	fs := flag.NewFlagSet("pod identity create", flag.ExitOnError)
+	handle := fs.String("handle", "", "publisher handle to bind to the new keypair (required)")
+	force := fs.Bool("force", false, "overwrite an existing identity file (destroys the prior key)")
+	fs.Parse(args)
+
+	if *handle == "" {
+		fmt.Fprintln(os.Stderr, "konareef pod identity create: --handle is required")
+		os.Exit(2)
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity create: locate home directory:", err)
+		os.Exit(1)
+	}
+	if _, err := os.Stat(identity.Path(home)); err == nil && !*force {
+		fmt.Fprintf(os.Stderr,
+			"identity create: %s already exists; pass --force to overwrite (this destroys the prior key)\n",
+			identity.Path(home),
+		)
+		os.Exit(1)
+	}
+
+	id, err := identity.Generate(*handle)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity create: generate keypair:", err)
+		os.Exit(1)
+	}
+	if err := id.Save(home); err != nil {
+		fmt.Fprintln(os.Stderr, "identity create: save:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("✓ Generated secp256k1 keypair")
+	fmt.Printf("✓ Saved to %s (mode 0600)\n\n", identity.Path(home))
+	fmt.Printf("  Handle:     %s\n", id.Handle)
+	fmt.Printf("  Public key: %s\n\n", id.PublicKeyHex)
+	fmt.Println("  Back up this file before publishing your first pod.")
+	fmt.Printf("  Losing the private key means losing control of the handle %q.\n", id.Handle)
+}
+
+// runPodIdentityShow prints the current identity's handle and public
+// key. It NEVER prints the private key — that field of identity.json
+// is a credential, and a `show` command that leaked it would be a
+// foot-gun every shell-history grep waits for.
+//
+// Exits 0 on success, 1 if no identity exists or perms are wrong.
+func runPodIdentityShow(args []string) {
+	fs := flag.NewFlagSet("pod identity show", flag.ExitOnError)
+	fs.Parse(args)
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity show: locate home directory:", err)
+		os.Exit(1)
+	}
+	id, err := identity.Load(home)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity show:", err)
+		os.Exit(1)
+	}
+	fmt.Printf("Handle:     %s\n", id.Handle)
+	fmt.Printf("Public key: %s\n", id.PublicKeyHex)
+	fmt.Printf("Scheme:     %s\n", id.Scheme)
+	fmt.Printf("Created at: %s\n", id.CreatedAt.Format(time.RFC3339))
+}
+
+// runPodIdentityExport writes a passphrase-encrypted backup of the
+// local identity to --output. The passphrase MUST be supplied via
+// --passphrase-file <path> (interactive prompting is a deliberate
+// follow-up — file-based input is scriptable and CI-safe).
+//
+// Exits 0 on success, 1 on I/O / crypto failure, 2 on usage error.
+func runPodIdentityExport(args []string) {
+	fs := flag.NewFlagSet("pod identity export", flag.ExitOnError)
+	output := fs.String("output", "", "destination path for the encrypted backup (required)")
+	passFile := fs.String("passphrase-file", "", "file containing the passphrase (required; trailing newlines trimmed)")
+	force := fs.Bool("force", false, "overwrite the output file if it exists")
+	fs.Parse(reorderFlagsFirst(args))
+
+	if *output == "" {
+		fmt.Fprintln(os.Stderr, "konareef pod identity export: --output is required")
+		os.Exit(2)
+	}
+
+	passphrase, err := resolvePassphrase(*passFile, true)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity export:", err)
+		os.Exit(1)
+	}
+
+	if _, err := os.Stat(*output); err == nil && !*force {
+		fmt.Fprintf(os.Stderr,
+			"identity export: %s already exists; pass --force to overwrite\n", *output)
+		os.Exit(1)
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity export: locate home directory:", err)
+		os.Exit(1)
+	}
+	id, err := identity.Load(home)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity export:", err)
+		os.Exit(1)
+	}
+	if err := id.Export(*output, passphrase); err != nil {
+		fmt.Fprintln(os.Stderr, "identity export:", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✓ Wrote encrypted backup to %s (mode 0600)\n", *output)
+	fmt.Println("  Keep the passphrase separately from the file. Losing")
+	fmt.Println("  either makes the backup useless.")
+}
+
+// runPodIdentityImport restores an identity from an encrypted backup
+// into <home>/.konareef/identity.json. An existing identity at the
+// target is preserved unless --force is passed — losing a key means
+// losing control of the handle bound to it.
+//
+// Exits 0 on success, 1 on I/O / crypto / wrong-passphrase failure,
+// 2 on usage error.
+func runPodIdentityImport(args []string) {
+	fs := flag.NewFlagSet("pod identity import", flag.ExitOnError)
+	passFile := fs.String("passphrase-file", "", "file containing the passphrase (required; trailing newlines trimmed)")
+	force := fs.Bool("force", false, "overwrite an existing identity file at the target")
+	fs.Parse(reorderFlagsFirst(args))
+
+	if fs.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "usage: konareef pod identity import <backup-path> --passphrase-file <path> [--force]")
+		os.Exit(2)
+	}
+	backupPath := fs.Arg(0)
+
+	passphrase, err := resolvePassphrase(*passFile, false)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity import:", err)
+		os.Exit(1)
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity import: locate home directory:", err)
+		os.Exit(1)
+	}
+	if _, err := os.Stat(identity.Path(home)); err == nil && !*force {
+		fmt.Fprintf(os.Stderr,
+			"identity import: %s already exists; pass --force to overwrite (this destroys the current key)\n",
+			identity.Path(home),
+		)
+		os.Exit(1)
+	}
+
+	id, err := identity.Import(backupPath, passphrase)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity import:", err)
+		os.Exit(1)
+	}
+	if err := id.Save(home); err != nil {
+		fmt.Fprintln(os.Stderr, "identity import: save:", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("✓ Restored identity to %s (mode 0600)\n\n", identity.Path(home))
+	fmt.Printf("  Handle:     %s\n", id.Handle)
+	fmt.Printf("  Public key: %s\n", id.PublicKeyHex)
+}
+
+// runPodIdentityRotate rotates the local publisher identity to a
+// freshly-generated keypair, registering the change with reef-core
+// so future installs walk a valid chain (old key → new key) at the
+// TrustChange branch of `konareef install`.
+//
+// Pipeline (atomic enough for a CLI — any failure before the final
+// Save leaves the existing identity.json untouched):
+//
+//  1. Load the current identity (becomes "old key").
+//  2. Generate a fresh keypair under the same handle ("new key").
+//  3. Build the attestation, sign Canonical(att) with the OLD key.
+//  4. POST to /api/publishers/<handle>/rotate — reef-core verifies
+//     the signature, records the rotation, and swings the
+//     publisher_identities row to the new key atomically.
+//  5. Archive the old identity.json to
+//     ~/.konareef/identity.<old-fingerprint>.archived.json (mode 0600).
+//     Kept around so a misfire is recoverable.
+//  6. Save the new identity to ~/.konareef/identity.json (mode 0600).
+//
+// Exits 0 on success, 1 on any pipeline failure, 2 on usage error.
+func runPodIdentityRotate(args []string) {
+	fs := flag.NewFlagSet("pod identity rotate", flag.ExitOnError)
+	server := fs.String("server", "", "reef-core URL (default: $KONAREEF_SERVER or http://localhost:4000)")
+	reason := fs.String("reason", "", "optional free-text reason recorded in the attestation")
+	fs.Parse(reorderFlagsFirst(args))
+
+	resolvedServer := *server
+	if resolvedServer == "" {
+		resolvedServer = os.Getenv("KONAREEF_SERVER")
+	}
+	if resolvedServer == "" {
+		resolvedServer = "http://localhost:4000"
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity rotate: locate home directory:", err)
+		os.Exit(1)
+	}
+
+	oldID, err := identity.Load(home)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity rotate:", err)
+		fmt.Fprintln(os.Stderr, "  (run `konareef pod identity create --handle <h>` first)")
+		os.Exit(1)
+	}
+
+	newID, err := identity.Generate(oldID.Handle)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity rotate: generate new keypair:", err)
+		os.Exit(1)
+	}
+
+	att := identity.RotationAttestation{
+		Kind:         "konareef-key-rotation/v1",
+		Handle:       oldID.Handle,
+		OldPubkeyHex: oldID.PublicKeyHex,
+		NewPubkeyHex: newID.PublicKeyHex,
+		// Microsecond-precision UTC ISO-8601, matching the format
+		// reef-core's RotationCanonical emits (and the format the
+		// server stores into rotated_at).
+		RotatedAt: time.Now().UTC().Format("2006-01-02T15:04:05.000000Z"),
+		Reason:    *reason,
+	}
+
+	sig, err := oldID.SignRotation(att)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity rotate: sign attestation:", err)
+		os.Exit(1)
+	}
+
+	oldFp, _ := install.Fingerprint(oldID.PublicKeyHex)
+	newFp, _ := install.Fingerprint(newID.PublicKeyHex)
+
+	fmt.Printf("Rotating identity for handle %q\n", oldID.Handle)
+	fmt.Printf("  old key: %s\n", oldFp)
+	fmt.Printf("  new key: %s\n\n", newFp)
+
+	fmt.Printf("POST %s/api/publishers/%s/rotate\n",
+		strings.TrimRight(resolvedServer, "/"), oldID.Handle)
+	resp, err := identity.SubmitRotation(resolvedServer, oldID.Handle, att, sig)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "identity rotate:", err)
+		os.Exit(1)
+	}
+	fmt.Printf("✓ Registered rotation (id=%s) at %s\n\n",
+		resp.RotationID, resp.RegisteredAt)
+
+	// Archive the old identity. Use a fingerprint-suffixed name so a
+	// publisher who rotates more than once still has every prior key
+	// on disk — naming on (pubkey-hash) prevents collision without
+	// needing a counter.
+	archivePath := filepath.Join(home, ".konareef",
+		fmt.Sprintf("identity.%s.archived.json",
+			strings.ReplaceAll(oldFp, ":", "")))
+	oldBytes, err := os.ReadFile(identity.Path(home))
+	if err != nil {
+		fmt.Fprintf(os.Stderr,
+			"identity rotate: warning: failed to read current identity for archive: %v\n", err)
+		os.Exit(1)
+	}
+	if err := os.WriteFile(archivePath, oldBytes, 0o600); err != nil {
+		fmt.Fprintf(os.Stderr,
+			"identity rotate: failed to archive old identity to %s: %v\n", archivePath, err)
+		os.Exit(1)
+	}
+	fmt.Printf("✓ Archived old identity to %s (mode 0600)\n", archivePath)
+
+	if err := newID.Save(home); err != nil {
+		fmt.Fprintln(os.Stderr, "identity rotate: save new identity:", err)
+		os.Exit(1)
+	}
+	fmt.Printf("✓ Wrote new identity to %s (mode 0600)\n", identity.Path(home))
+}
+
+// readPassphraseFile reads a passphrase from path, trimming a single
+// trailing newline (so a passphrase file authored with `echo` works
+// as expected) but preserving every other byte.
+func readPassphraseFile(path string) ([]byte, error) {
+	body, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read passphrase file: %w", err)
+	}
+	if n := len(body); n > 0 && body[n-1] == '\n' {
+		body = body[:n-1]
+	}
+	if len(body) == 0 {
+		return nil, fmt.Errorf("passphrase file %s is empty", path)
+	}
+	return body, nil
+}
+
+// readPassphraseInteractive prompts on the controlling terminal with
+// echo disabled and returns the typed passphrase. When confirm is
+// true the user must type the passphrase twice (for new-passphrase
+// flows like `identity export`); the second prompt's bytes must
+// match exactly. Newline is printed after each prompt so the next
+// console line starts cleanly.
+//
+// A non-TTY stdin (piped, redirected) returns an error rather than
+// silently reading the passphrase from the pipe — that path is
+// already covered by --passphrase-file and reading from a pipe
+// invisibly would be a foot-gun in scripts.
+func readPassphraseInteractive(confirm bool) ([]byte, error) {
+	fd := int(os.Stdin.Fd())
+	if !term.IsTerminal(fd) {
+		return nil, fmt.Errorf(
+			"stdin is not a terminal and --passphrase-file was not provided")
+	}
+	fmt.Fprint(os.Stderr, "Passphrase: ")
+	pw, err := term.ReadPassword(fd)
+	fmt.Fprintln(os.Stderr)
+	if err != nil {
+		return nil, fmt.Errorf("read passphrase: %w", err)
+	}
+	if len(pw) == 0 {
+		return nil, fmt.Errorf("passphrase is empty")
+	}
+	if confirm {
+		fmt.Fprint(os.Stderr, "Confirm passphrase: ")
+		pw2, err := term.ReadPassword(fd)
+		fmt.Fprintln(os.Stderr)
+		if err != nil {
+			return nil, fmt.Errorf("read passphrase confirmation: %w", err)
+		}
+		if string(pw) != string(pw2) {
+			return nil, fmt.Errorf("passphrases do not match")
+		}
+	}
+	return pw, nil
+}
+
+// humanDaysAgo renders a UTC timestamp as a "N days ago"-style
+// phrase for the install summary's "last verified" line. Same day
+// collapses to "today"; a single 24h interval shows "1 day ago"
+// (singular). Negative deltas (clock skew, future timestamps) are
+// also treated as "today".
+func humanDaysAgo(t time.Time) string {
+	days := int(time.Now().UTC().Sub(t).Hours() / 24)
+	switch {
+	case days <= 0:
+		return "today"
+	case days == 1:
+		return "1 day ago"
+	default:
+		return fmt.Sprintf("%d days ago", days)
+	}
+}
+
+// resolvePassphrase routes between --passphrase-file (scriptable,
+// CI-safe) and an interactive TTY prompt (the default when a human
+// is at the keyboard). confirm gates the "type it twice" flow used
+// when the passphrase is being set, not just verified.
+func resolvePassphrase(passphraseFile string, confirm bool) ([]byte, error) {
+	if passphraseFile != "" {
+		return readPassphraseFile(passphraseFile)
+	}
+	return readPassphraseInteractive(confirm)
+}
+
+// runPodPublish signs and submits a pod to reef-core. Composes the
+// existing primitives: pod.ParseAndValidate → canon.Canonicalize →
+// identity.Sign → publish.Submit. The --dry-run flag stops after
+// signing — useful for offline verification and for the period
+// before reef-core's POST /api/pods endpoint (P0.6 6d) ships.
+//
+// Server URL precedence: --server flag → $KONAREEF_SERVER → the
+// TUI's default (http://localhost:4000).
+//
+// Exits 0 on success, 1 on any pipeline failure, 2 on usage error.
+//
+// The Tier-2 anchor backend (`publishAnchorBackend`) and the default
+// vkey resolver (`newDefaultResolver`) used by the `--pin-circuit-vkey`
+// and `--zk` flows are defined in build-tag-gated companion files:
+//
+//   - main_anchor_backend.go        (production, `!testhooks`)
+//   - main_anchor_backend_testhook.go (`testhooks` build only)
+//   - main_resolver.go              (production, `!testhooks`)
+//   - main_resolver_testhook.go     (`testhooks` build only)
+//
+// Production builds (no `-tags testhooks`) fail closed: anchor lookups
+// always return ErrAnchorNotFound (no BSV wallet wiring yet, P1.8) and
+// Tier-1 vkey fetches always hit the real `https://paygate-zk.<domain>`
+// well-known URL. The test-hook variants add env-var seams
+// (KONAREEF_TEST_ANCHOR_HASH_HEX, KONAREEF_TEST_VKEY_BASE_URL) used by
+// the e2e CLI tests and are unreachable from release binaries.
+
+func runPodPublish(args []string) {
+	fs := flag.NewFlagSet("pod publish", flag.ExitOnError)
+	server := fs.String("server", "", "reef-core URL (default: $KONAREEF_SERVER or http://localhost:4000)")
+	dryRun := fs.Bool("dry-run", false, "validate + canonicalize + sign locally; skip the POST")
+	publicBundle := fs.Bool("public-bundle", false,
+		"opt this publication into the public verifiable bundle endpoint (default off — only the sanitized display bundle is public)")
+
+	// P1.3 — ZK opt-in flags (PRD 4 § 4.3).
+	circuitID := fs.String("circuit-id", "",
+		"pin the publication to a specific circuit_id (e.g. konareef-pod-step-v1); mandatory with --zk")
+	pinCircuitVkey := fs.Bool("pin-circuit-vkey", false,
+		"trigger on-chain anchor of the active circuit's vkey (no-op if anchor already exists); requires --circuit-id")
+	disclosurePolicy := fs.String("disclosure-policy", "",
+		"per-session disclosure policy {C|D}; mandatory with --zk (case-insensitive)")
+	zk := fs.Bool("zk", false,
+		"opt into the ZK publication path (sets published_pods.zk_enabled = true)")
+
+	fs.Parse(reorderFlagsFirst(args))
+	if fs.NArg() < 1 {
+		fmt.Fprintln(os.Stderr,
+			"usage: konareef pod publish <pod-dir> [--server URL] [--dry-run] "+
+				"[--public-bundle] [--zk --circuit-id <id> --disclosure-policy {C|D}] "+
+				"[--pin-circuit-vkey]")
+		os.Exit(2)
+	}
+	podDir := fs.Arg(0)
+
+	// Normalise --disclosure-policy to upper-case so "c" / "C" / "d" / "D"
+	// all reach ValidateZKFlags in canonical form.
+	normalisedPolicy := strings.ToUpper(*disclosurePolicy)
+
+	flags := publish.ZKFlags{
+		CircuitID:        *circuitID,
+		PinCircuitVkey:   *pinCircuitVkey,
+		DisclosurePolicy: normalisedPolicy,
+		ZK:               *zk,
+	}
+	if err := publish.ValidateZKFlags(flags); err != nil {
+		fmt.Fprintln(os.Stderr, "publish:", err)
+		os.Exit(2)
+	}
+
+	resolvedServer := *server
+	if resolvedServer == "" {
+		resolvedServer = os.Getenv("KONAREEF_SERVER")
+	}
+	if resolvedServer == "" {
+		resolvedServer = "http://localhost:4000"
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "publish: locate home directory:", err)
+		os.Exit(1)
+	}
+	id, err := identity.Load(home)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "publish:", err)
+		fmt.Fprintln(os.Stderr, "  (run `konareef pod identity create --handle <h>` first)")
+		os.Exit(1)
+	}
+
+	prep, err := publish.Prepare(podDir, id)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "publish:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("✓ Validated pod.toml against v0.1 schema")
+	fmt.Printf("✓ Canonicalized manifest (%d bytes)\n", len(prep.CanonicalBytes))
+	fmt.Printf("  pod_hash: sha256:%x\n", prep.PodHash)
+	fmt.Printf("✓ Signed manifest with identity %q\n", prep.Handle)
+	fmt.Printf("  signature: %x\n\n", prep.Signature)
+
+	// --pin-circuit-vkey: handle BEFORE the publish branch so it can
+	// run standalone (PRD 4 § 4.3.2). Fail-closed: this halts the
+	// publish on ErrAnchorBroadcastUnsupported (no broadcast path
+	// until P1.8) and on ErrCircuitPinMismatch (on-chain anchor hash
+	// disagrees with the resolved vkey). The Tier-2 anchor backend is
+	// the package-level seam `publishAnchorBackend`.
+	if flags.PinCircuitVkey {
+		manifest, err := publish.FetchDiscoveryManifest(context.Background(), resolvedServer)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "publish: --pin-circuit-vkey:", err)
+			os.Exit(1)
+		}
+		pin, ok := manifest.VkeySha256For(flags.CircuitID)
+		if !ok {
+			fmt.Fprintf(os.Stderr,
+				"publish: --pin-circuit-vkey: circuit %q not advertised in discovery manifest\n",
+				flags.CircuitID)
+			os.Exit(1)
+		}
+		resolver, err := newDefaultResolver()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "publish: --pin-circuit-vkey:", err)
+			os.Exit(1)
+		}
+		// MR !21 round-2 B2 (note 680): strip the `paygate-zk.` prefix
+		// off the discovery `paygate_zk_domain` (service host) before
+		// passing to the resolver, which expects the publisher BASE
+		// domain and rejects already-prefixed inputs with
+		// ErrDomainAlreadyPrefixed.
+		baseDomain, err := publish.PublisherBaseDomain(manifest.PaygateZKDomainHost())
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "publish: --pin-circuit-vkey:", err)
+			os.Exit(1)
+		}
+		vkey, err := resolver.Resolve(context.Background(), vkeystore.ResolveRequest{
+			CircuitID:       flags.CircuitID,
+			VkeySha256:      pin,
+			PublisherDomain: baseDomain,
+		})
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "publish: --pin-circuit-vkey:", err)
+			os.Exit(1)
+		}
+		if _, anchorErr := publish.EnsureVkeyAnchor(
+			context.Background(), publishAnchorBackend, flags.CircuitID, vkey.Bytes); anchorErr != nil {
+			fmt.Fprintln(os.Stderr, "publish: --pin-circuit-vkey:", anchorErr)
+			os.Exit(1)
+		}
+		fmt.Println("✓ --pin-circuit-vkey: existing on-chain anchor verified (no-op)")
+		// Standalone --pin-circuit-vkey: exit if no further publish
+		// work was requested.
+		if !flags.ZK && !*publicBundle {
+			return
+		}
+	}
+
+	if *dryRun {
+		fmt.Printf("DRY RUN — skipping POST to %s/api/pods\n",
+			strings.TrimRight(resolvedServer, "/"))
+		return
+	}
+
+	// --zk: pre-session pin check + Type-D salt provisioning + witness
+	// seal. All three fail-closed BEFORE publish.Submit.
+	var sealedWitness *publish.Witness
+	var sealedLineageID [16]byte
+	var sealedSalt [32]byte
+	if flags.ZK {
+		fmt.Println("✓ ZK opt-in:")
+		fmt.Printf("  circuit_id:        %s\n", flags.CircuitID)
+		fmt.Printf("  disclosure_policy: %s\n", flags.DisclosurePolicy)
+
+		manifest, err := publish.FetchDiscoveryManifest(context.Background(), resolvedServer)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "publish: discovery manifest:", err)
+			os.Exit(1)
+		}
+		resolver, err := newDefaultResolver()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "publish:", err)
+			os.Exit(1)
+		}
+		if err := publish.PreflightPinCheck(
+			context.Background(), resolver, flags, manifest); err != nil {
+			fmt.Fprintln(os.Stderr, "publish:", err)
+			os.Exit(1)
+		}
+
+		// Type-D salt provisioning. EnsureSaltForTypeD is a no-op for
+		// Type-C; for Type-D it requires a saltstore backend.
+		var saltBackend saltstore.Backend
+		if flags.DisclosurePolicy == "D" {
+			saltBackend, err = saltstore.Resolve(defaultResolveOpts())
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "publish:", err)
+				os.Exit(1)
+			}
+		}
+		lineageID, salt, err := publish.EnsureSaltForTypeD(flags, prep.Spec, saltBackend)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "publish:", err)
+			os.Exit(1)
+		}
+		sealedLineageID = lineageID
+		sealedSalt = salt
+		if flags.DisclosurePolicy == "D" {
+			fmt.Printf("  lineage_id:        %x\n", sealedLineageID)
+			fmt.Println("  ✓ Type-D salt provisioned + persisted via saltstore")
+		}
+
+		// Seal the witness disclosure policy. After this point the
+		// session's policy is irrevocable.
+		sealedWitness = &publish.Witness{
+			LineageID: sealedLineageID,
+			Salt:      sealedSalt,
+		}
+		if err := publish.SealDisclosurePolicy(flags, sealedWitness); err != nil {
+			fmt.Fprintln(os.Stderr, "publish:", err)
+			os.Exit(1)
+		}
+	}
+
+	submitOpts := publish.SubmitOpts{
+		PublicBundle:     *publicBundle,
+		CircuitID:        flags.CircuitID,
+		ZkEnabled:        flags.ZK,
+		DisclosurePolicy: flags.DisclosurePolicy,
+		Witness:          sealedWitness,
+	}
+	maybeDumpSubmitOpts(submitOpts)
+	resp, err := publish.Submit(resolvedServer, prep, submitOpts)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "publish:", err)
+		os.Exit(1)
+	}
+	fmt.Printf("POST %s/api/pods\n", strings.TrimRight(resolvedServer, "/"))
+	fmt.Printf("✓ Pod registered as %s/%s v%s\n", prep.Handle, prep.PodName, prep.PodVersion)
+	if *publicBundle {
+		fmt.Println("  ⚠  publicly verifiable bundle ENABLED — every commitment in every run of this pod will be downloadable verbatim from the public bundle endpoint")
+	}
+	if flags.ZK {
+		fmt.Println("  ⚠  ZK path ENABLED — v2 bundle emission active")
+	}
+	fmt.Printf("  install URL: %s\n", resp.InstallURL)
+	if !resp.RegisteredAt.IsZero() {
+		fmt.Printf("  registered at: %s\n", resp.RegisteredAt.Format(time.RFC3339))
+	}
+}
+
+// runInstall fetches, verifies, and caches a published pod for the
+// buyer side of the workflow (P0.6 6e).
+//
+// Argument shape: `<handle>/<pod-name>[@<version>]`. Without
+// @<version>, the server's `/latest` alias is used.
+//
+// Verification is non-negotiable: a hash mismatch or signature
+// failure aborts before any cache write and without a user prompt —
+// "Refuse install if anything mismatches" per publisher-signing-
+// design v0 §"Stage 4".
+//
+// Server URL precedence: --server → $KONAREEF_SERVER →
+// http://localhost:4000. --yes skips the interactive y/N prompt for
+// scripted use.
+//
+// Exits 0 on success or user-aborted prompt, 1 on any fetch / verify
+// / cache failure, 2 on usage error.
+// runPodTrust records a publisher's pubkey in
+// ~/.konareef/known_publishers.json as locally trusted. The intended
+// use is admin recovery after a key change: when `konareef install`
+// blocks on a TrustChange divergence, the user out-of-band-confirms
+// the new key with the publisher and runs:
+//
+//	konareef pod trust <handle> --pubkey-hex <new-pubkey> [--yes]
+//
+// This is deliberately a separate command, not a `--force` flag on
+// install — users should never get into the habit of `--force install`.
+//
+// Exits 0 on success, 1 on I/O failure, 2 on usage error or
+// malformed pubkey.
+func runPodTrust(args []string) {
+	fs := flag.NewFlagSet("pod trust", flag.ExitOnError)
+	pubkeyHex := fs.String("pubkey-hex", "", "publisher's compressed-secp256k1 pubkey, 66 hex chars (required)")
+	yes := fs.Bool("yes", false, "skip the interactive confirmation prompt")
+	fs.Parse(reorderFlagsFirst(args))
+
+	if fs.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "usage: konareef pod trust <handle> --pubkey-hex <hex> [--yes]")
+		os.Exit(2)
+	}
+	handle := fs.Arg(0)
+	if *pubkeyHex == "" {
+		fmt.Fprintln(os.Stderr, "konareef pod trust: --pubkey-hex is required")
+		os.Exit(2)
+	}
+	if !looksLikeCompressedPubkey(*pubkeyHex) {
+		fmt.Fprintln(os.Stderr,
+			"konareef pod trust: --pubkey-hex must be 66 hex characters starting with 02 or 03 (compressed secp256k1)")
+		os.Exit(2)
+	}
+	newFp, _ := install.Fingerprint(*pubkeyHex)
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "pod trust: locate home directory:", err)
+		os.Exit(1)
+	}
+	known, err := install.LoadKnownPublishers(home)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "pod trust:", err)
+		os.Exit(1)
+	}
+
+	existing := known.Get(handle)
+	fmt.Printf("Recording trust for %q:\n", handle)
+	if existing != nil {
+		fmt.Printf("  previous key: %s (since %s)\n",
+			existing.Fingerprint, existing.FirstSeenAt.Format("2006-01-02"))
+	} else {
+		fmt.Println("  previous key: (none — this is the first record)")
+	}
+	fmt.Printf("  new key:      %s\n", newFp)
+	fmt.Println()
+
+	if !*yes {
+		fmt.Print("Confirm? [y/N] ")
+		var answer string
+		_, _ = fmt.Scanln(&answer)
+		if strings.ToLower(strings.TrimSpace(answer)) != "y" {
+			fmt.Println("Aborted.")
+			return
+		}
+	}
+
+	known.Record(handle, *pubkeyHex, time.Now().UTC())
+	if err := known.Save(home); err != nil {
+		fmt.Fprintln(os.Stderr, "pod trust:", err)
+		os.Exit(1)
+	}
+	fmt.Printf("✓ Updated %s\n", install.KnownPublishersPath(home))
+}
+
+// looksLikeCompressedPubkey checks the hex string is the right
+// shape for a compressed secp256k1 pubkey: 66 hex chars (33 bytes)
+// starting with the standard 02 or 03 prefix. Doesn't verify the
+// point is on the curve — that's the signature verifier's job.
+func looksLikeCompressedPubkey(hex string) bool {
+	if len(hex) != 66 {
+		return false
+	}
+	if hex[:2] != "02" && hex[:2] != "03" {
+		return false
+	}
+	for _, r := range hex {
+		ok := (r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func runInstall(args []string) {
+	fs := flag.NewFlagSet("install", flag.ExitOnError)
+	server := fs.String("server", "", "reef-core URL (default: $KONAREEF_SERVER or http://localhost:4000)")
+	yes := fs.Bool("yes", false, "skip the interactive confirmation prompt")
+	fs.Parse(reorderFlagsFirst(args))
+	if fs.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "usage: konareef install <handle>/<pod-name>[@<version>] [--server URL] [--yes]")
+		os.Exit(2)
+	}
+	handle, podName, version, err := parsePodSpec(fs.Arg(0))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "install:", err)
+		os.Exit(2)
+	}
+
+	resolvedServer := *server
+	if resolvedServer == "" {
+		resolvedServer = os.Getenv("KONAREEF_SERVER")
+	}
+	if resolvedServer == "" {
+		resolvedServer = "http://localhost:4000"
+	}
+
+	fmt.Printf("Fetching pod manifest from %s...\n", strings.TrimRight(resolvedServer, "/"))
+	fetched, err := install.Fetch(resolvedServer, handle, podName, version)
+	if err != nil {
+		if errors.Is(err, install.ErrManifestNotFound) {
+			fmt.Fprintf(os.Stderr, "install: MANIFEST_NOT_FOUND: no published pod at %s/%s",
+				handle, podName)
+			if version != "" {
+				fmt.Fprintf(os.Stderr, "@%s", version)
+			}
+			fmt.Fprintln(os.Stderr)
+			os.Exit(4)
+		}
+		fmt.Fprintln(os.Stderr, "install:", err)
+		os.Exit(1)
+	}
+	fmt.Printf("✓ Retrieved: %s/%s v%s\n", fetched.Handle, fetched.PodName, fetched.PodVersion)
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "install: locate home directory:", err)
+		os.Exit(1)
+	}
+
+	lock, err := install.AcquireLock(home, fetched.Handle, fetched.PodName, 60*time.Second)
+	if err != nil {
+		if errors.Is(err, install.ErrLocalLocked) {
+			fmt.Fprintf(os.Stderr, "install: LOCAL_LOCKED: another install of %s/%s is in progress\n",
+				fetched.Handle, fetched.PodName)
+			os.Exit(5)
+		}
+		fmt.Fprintln(os.Stderr, "install: acquire lock:", err)
+		os.Exit(1)
+	}
+	defer lock.Release()
+
+	status, err := install.CheckInstalled(home, fetched.Handle, fetched.PodName, fetched.PodVersion, fetched.PodHash)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "install: inspect local cache:", err)
+		os.Exit(1)
+	}
+	switch status {
+	case install.StatusAlreadyInstalled:
+		fmt.Printf("✓ Already installed: %s/%s v%s (sha256:%x)\n",
+			fetched.Handle, fetched.PodName, fetched.PodVersion, fetched.PodHash[:6])
+		return
+	case install.StatusConflict:
+		fmt.Fprintf(os.Stderr,
+			"install: INSTALL_HASH_MISMATCH: %s/%s@%s already installed with a different hash (remote sha256:%x)\n",
+			fetched.Handle, fetched.PodName, fetched.PodVersion, fetched.PodHash[:6])
+		os.Exit(5)
+	}
+	// StatusNotInstalled → fall through to Verify + Cache.
+
+	if err := install.Verify(fetched); err != nil {
+		fmt.Fprintln(os.Stderr, "install: refusing — verification failed:", err)
+		os.Exit(1)
+	}
+	fingerprint, _ := install.Fingerprint(fetched.PublisherPubkeyHex)
+	fmt.Printf("✓ Publisher signature valid (handle: %s, fingerprint: %s)\n", fetched.Handle, fingerprint)
+	fmt.Printf("✓ Pod hash matches: sha256:%x\n\n", fetched.PodHash)
+
+	known, err := install.LoadKnownPublishers(home)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "install:", err)
+		os.Exit(1)
+	}
+
+	defaultYes := false
+	switch m := known.Match(fetched.Handle, fetched.PublisherPubkeyHex); m.Status {
+	case install.TrustOK:
+		fmt.Printf("✓ Known publisher — last verified %s (trusted since %s)\n\n",
+			humanDaysAgo(m.Known.LastVerifiedAt),
+			m.Known.FirstSeenAt.Format("2006-01-02"))
+		defaultYes = true
+
+	case install.TrustNew:
+		fmt.Println("⚠  NEW publisher — first time installing from this handle.")
+		fmt.Println("   By installing, you record this public key locally; future")
+		fmt.Println("   installs from this handle will be silently verified against it.")
+		fmt.Println()
+
+	case install.TrustChange:
+		fmt.Println("⚠  Publisher key change detected — checking for rotation attestation...")
+
+		rotations, err := install.FetchRotations(resolvedServer, fetched.Handle)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "   could not fetch rotation history: %v\n", err)
+			blockKeyChange(fetched.Handle, m.Known, fingerprint, fetched.PublisherPubkeyHex)
+		}
+
+		chain, err := install.WalkRotationChain(
+			rotations, fetched.Handle,
+			m.Known.PubkeyHex, fetched.PublisherPubkeyHex,
+		)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "   no valid rotation chain found: %v\n", err)
+			blockKeyChange(fetched.Handle, m.Known, fingerprint, fetched.PublisherPubkeyHex)
+		}
+
+		// Chain verified end-to-end. Surface each hop so the user can
+		// see the signing trail before consenting.
+		fmt.Printf("✓ Found valid rotation chain (%d hop", len(chain))
+		if len(chain) != 1 {
+			fmt.Print("s")
+		}
+		fmt.Println("):")
+		for i, hop := range chain {
+			oldFp, _ := install.Fingerprint(hop.Attestation.OldPubkeyHex)
+			newFp, _ := install.Fingerprint(hop.Attestation.NewPubkeyHex)
+			fmt.Printf("    %d. %s → %s  rotated %s",
+				i+1, oldFp, newFp, hop.Attestation.RotatedAt)
+			if hop.Attestation.Reason != "" {
+				fmt.Printf(" (%s)", hop.Attestation.Reason)
+			}
+			fmt.Println()
+		}
+		fmt.Println()
+		fmt.Printf("  This appears to be a legitimate key rotation. The new key\n")
+		fmt.Printf("  will replace the old one in your trusted publishers list\n")
+		fmt.Printf("  if you proceed.\n\n")
+		// Rotation acceptance is never silent — default to N regardless
+		// of how `defaultYes` was set above.
+		defaultYes = false
+	}
+
+	if !*yes {
+		prompt := "Install? [y/N] "
+		if defaultYes {
+			prompt = "Install? [Y/n] "
+		}
+		fmt.Print(prompt)
+		var answer string
+		_, _ = fmt.Scanln(&answer)
+		a := strings.ToLower(strings.TrimSpace(answer))
+		accept := (a == "y" || a == "yes") || (a == "" && defaultYes)
+		if !accept {
+			fmt.Println("Aborted.")
+			return
+		}
+	}
+
+	cacheDir, err := install.Cache(home, fetched)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "install: cache:", err)
+		os.Exit(1)
+	}
+
+	// Record the trust decision (TrustNew → new entry; TrustOK →
+	// LastVerifiedAt refresh; TrustChange already exited above).
+	known.Record(fetched.Handle, fetched.PublisherPubkeyHex, time.Now().UTC())
+	if err := known.Save(home); err != nil {
+		fmt.Fprintf(os.Stderr, "install: warning: failed to update known_publishers.json: %v\n", err)
+	}
+	fmt.Printf("✓ Installed %s/%s to %s\n", fetched.Handle, fetched.PodName, cacheDir)
+}
+
+// blockKeyChange prints the security-critical "publisher key changed
+// without valid rotation attestation" message and exits the process
+// with code 2 (refusal). Called from runInstall's TrustChange branch
+// whenever the rotation fetch fails or the chain cannot be walked
+// from the locally-recorded key to the server-supplied one.
+//
+// Exits the process — never returns to the caller.
+func blockKeyChange(handle string, known *install.PublisherRecord, newFingerprint, newPubkeyHex string) {
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(os.Stderr, "✗ PUBLISHER KEY CHANGE DETECTED — install BLOCKED")
+	fmt.Fprintf(os.Stderr, "    handle:       %s\n", handle)
+	fmt.Fprintf(os.Stderr, "    recorded key: %s (since %s)\n",
+		known.Fingerprint, known.FirstSeenAt.Format("2006-01-02"))
+	fmt.Fprintf(os.Stderr, "    new key:      %s\n", newFingerprint)
+	fmt.Fprintln(os.Stderr)
+	fmt.Fprintf(os.Stderr, "  Out-of-band confirmation required. If %q legitimately rotated their key:\n", handle)
+	fmt.Fprintf(os.Stderr, "      konareef pod trust %s --pubkey-hex %s\n", handle, newPubkeyHex)
+	fmt.Fprintln(os.Stderr, "  Otherwise: do not install. Report at security@konareef.ai.")
+	os.Exit(2)
+}
+
+// parsePodSpec parses the `konareef install` argument
+// `<handle>/<pod-name>[@<version>]` into its parts. An empty version
+// signals "latest" to Fetch. Handle and pod-name are both required;
+// an empty either side is a usage error.
+func parsePodSpec(spec string) (handle, podName, version string, err error) {
+	slash := strings.IndexByte(spec, '/')
+	if slash < 0 {
+		return "", "", "", fmt.Errorf("pod spec %q is not <handle>/<pod-name>[@<version>]", spec)
+	}
+	handle = spec[:slash]
+	rest := spec[slash+1:]
+	if at := strings.IndexByte(rest, '@'); at >= 0 {
+		podName = rest[:at]
+		version = rest[at+1:]
+	} else {
+		podName = rest
+	}
+	if handle == "" || podName == "" {
+		return "", "", "", fmt.Errorf("pod spec %q has an empty handle or pod name", spec)
+	}
+	return handle, podName, version, nil
+}
+
+// runVerify re-checks a konareef-bundle/v1 document offline (P0.2).
+// Accepts either a filesystem path or an http(s) URL.
+//
+//   - 0  → bundle verified
+//   - 1  → load failure OR at least one divergence
+//   - 2  → usage error
+//
+// --json emits a structured result for piping; the default output
+// is a human-friendly checklist with the divergences enumerated.
+func runVerify(args []string) {
+	fs := flag.NewFlagSet("verify", flag.ExitOnError)
+	asJSON := fs.Bool("json", false, "emit the verification result as JSON for piping")
+	strict := fs.Bool("strict", false, "require a fully-populated publisher attestation envelope; reject legacy v0 unsigned bundles (WI-P0-002)")
+	// P1.3 — optional verify-side disclosure-policy assertion
+	// (PRD 4 § 4.3.3). Empty = no-op; non-empty asserts the bundle's
+	// `disclosure` field equals the supplied value (case-insensitive).
+	disclosurePolicyAssert := fs.String("disclosure-policy", "",
+		"assert the bundle's disclosure policy matches {C|D}; mismatch returns ERR_DISCLOSURE_POLICY_VIOLATION")
+	asTUI := fs.Bool("tui", false, "render the verification result in an interactive TUI instead of plain text")
+	fs.Parse(reorderFlagsFirst(args))
+	if fs.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "usage: konareef verify <path-or-url> [--json] [--strict] [--disclosure-policy {C|D}] [--tui]")
+		os.Exit(2)
+	}
+	src := fs.Arg(0)
+
+	// --tui: hand off to the standalone interactive verify screen
+	// (Track A.1). It owns format dispatch (v1 JSON / v2 CBOR), the
+	// disclosure-policy assertion, and rendering; the headless paths
+	// below are unaffected.
+	if *asTUI {
+		if err := tui.RunVerify(src, *strict, *disclosurePolicyAssert); err != nil {
+			fmt.Fprintln(os.Stderr, "verify:", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Headless konareef-bundle/v2 (CBOR) dispatch. The legacy verify.Load
+	// path below is v1-JSON only; a v2 CBOR bundle (first byte 0xA0..0xBB)
+	// is routed here through VerifyV2Production, which injects the real
+	// Rust Spartan verifier subprocess when KONAREEF_VERIFY_BIN is set
+	// (fail-closed otherwise). This is the non-TUI DoD entry point for C0
+	// end-to-end verify — `konareef verify <path-or-url>.cbor` — that the
+	// interactive --tui path cannot serve in a non-TTY context.
+	//
+	// MR !30 fix: the byte source must cover BOTH local files AND http(s)
+	// URLs so the served-bundle C0 flow (/api/public/proofs/:hash/bundle +
+	// `konareef verify <url>`) reaches VerifyV2Production.
+	//
+	// Single-fetch (MR !30 blocker-2): fetch the raw source bytes EXACTLY
+	// ONCE, then dispatch on the first byte. A CBOR map (0xA0..0xBB) routes
+	// to the v2 verifier; anything else is parsed as v1 JSON from the SAME
+	// already-fetched bytes via verify.LoadFromBytes — NOT re-fetched. A
+	// previous version fetched once to peek the format and then called
+	// verify.Load(src) which fetched the URL AGAIN; for single-use /
+	// expiring / mutable URLs the second fetch can fail or return different
+	// bytes than were peeked. We now reuse the first read for both the
+	// format peek and the v1 parse, so the CLI makes one network request.
+	//
+	// A failed fetch is reported with the exact v1 error wording (matching
+	// the prior verify.Load behavior) for both local paths and URLs.
+	raw, readErr := verify.ReadSource(src)
+	if readErr != nil {
+		fmt.Fprintln(os.Stderr, "verify:", readErr)
+		os.Exit(1)
+	}
+	if len(raw) > 0 && raw[0] >= 0xA0 && raw[0] <= 0xBB {
+		runVerifyV2Headless(src, raw, *disclosurePolicyAssert, *asJSON)
+		return
+	}
+
+	b, err := verify.LoadFromBytes(raw)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "verify:", err)
+		os.Exit(1)
+	}
+
+	// P1.3 — optional disclosure-policy assertion (PRD 4 § 4.3.3).
+	if *disclosurePolicyAssert != "" {
+		if err := verify.AssertDisclosurePolicy(b, strings.ToUpper(*disclosurePolicyAssert)); err != nil {
+			fmt.Fprintln(os.Stderr, "verify:", err)
+			os.Exit(1)
+		}
+	}
+
+	var result *verify.Result
+	if *strict {
+		result = verify.VerifyStrict(b)
+	} else {
+		result = verify.Verify(b)
+	}
+
+	if *asJSON {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(map[string]any{
+			"source":             src,
+			"version":            b.Version,
+			"ok":                 result.OK,
+			"chain_length":       result.ChainLength,
+			"divergences":        result.Divergences,
+			"attestation_status": result.AttestationStatus,
+		})
+	} else {
+		fmt.Printf("Bundle: %s\n", src)
+		fmt.Printf("Version: %s\n", b.Version)
+		fmt.Printf("Chain length: %d\n\n", result.ChainLength)
+		if result.OK {
+			// WI-P0-007: distinguish "passed because the bundle is
+			// legacy unsigned" from "passed because the publisher
+			// signature actually checked". A green check on a
+			// legacy bundle is NOT cryptographic proof of authorship.
+			switch result.AttestationStatus {
+			case "attested":
+				fmt.Println("✓ Verification PASSED (publisher attested)")
+				fmt.Println("  - chain link hashes recompute")
+				fmt.Println("  - snapshot Merkle root matches")
+				fmt.Println("  - snapshot-source accesses are in the leaf set")
+				fmt.Println("  - access log hash matches the custody claim")
+				fmt.Println("  - SHA-256(manifest) == pod_hash")
+				fmt.Println("  - publisher signature verifies under publisher_pubkey")
+			case "legacy_unsigned":
+				fmt.Println("✓ Verification PASSED (legacy unsigned bundle)")
+				fmt.Println("  - chain link hashes recompute")
+				fmt.Println("  - snapshot Merkle root matches")
+				fmt.Println("  - snapshot-source accesses are in the leaf set")
+				fmt.Println("  - access log hash matches the custody claim")
+				fmt.Println("  ⚠  no publisher attestation; --strict to require one")
+			default:
+				// Should not happen for OK results, but degrade
+				// safely if it does.
+				fmt.Println("✓ Verification PASSED")
+			}
+		} else {
+			fmt.Println("✗ Verification FAILED")
+			for _, d := range result.Divergences {
+				fmt.Printf("  - %s\n", d)
+			}
+		}
+	}
+
+	if !result.OK {
+		os.Exit(1)
+	}
+}
+
+// runVerifyV2Headless verifies a konareef-bundle/v2 (CBOR) bundle on the
+// live production path (real Rust Spartan verifier subprocess when
+// KONAREEF_VERIFY_BIN is set; fail-closed otherwise) and prints a non-TUI
+// summary. It exits 1 on any divergence, 0 on a full PASS — mirroring the
+// headless v1 exit contract.
+//
+// disclosurePolicy, when non-empty, asserts the bundle's disclosure field
+// (case-insensitive) before verification, identical to the v1 path.
+// verifyV2ByteSource fetches the raw bytes for src — a local filesystem path
+// OR an http(s) URL — via verify.ReadSource, then applies the first-byte
+// format gate that decides between the konareef-bundle/v2 CBOR verifier and
+// the legacy v1 JSON loader.
+//
+// Inputs:
+//   - src: a local path or http(s) URL (the `konareef verify <src>` argument).
+//
+// Returns:
+//   - raw:  the fetched bytes when src is a v2 CBOR-map bundle, else nil.
+//   - isV2: true iff the fetch succeeded AND the first byte is a CBOR map
+//     header (0xA0..0xBB), meaning the caller must route to the v2 verifier.
+//
+// When isV2 is false — a non-CBOR body, an empty body, or a failed fetch —
+// the caller falls through to verify.Load(src), preserving the exact v1 JSON
+// behavior and v1 error reporting for both local paths and URLs. This is the
+// single point of dispatch shared by file and URL sources (MR !30): it is the
+// reason the served-bundle C0 flow (/api/public/proofs/:hash/bundle) reaches
+// VerifyV2Production instead of falling through to the v1 JSON loader.
+func verifyV2ByteSource(src string) (raw []byte, isV2 bool) {
+	b, err := verify.ReadSource(src)
+	if err != nil || len(b) == 0 {
+		return nil, false
+	}
+	if b[0] >= 0xA0 && b[0] <= 0xBB {
+		return b, true
+	}
+	return nil, false
+}
+
+func runVerifyV2Headless(src string, raw []byte, disclosurePolicy string, asJSON bool) {
+	// Best-effort header decode for the policy assertion + display, then
+	// route to the production v2 verifier.
+	var hdr struct {
+		Version    string `cbor:"version"`
+		CircuitID  string `cbor:"circuit_id"`
+		Disclosure string `cbor:"disclosure"`
+	}
+	_ = cbor.Unmarshal(raw, &hdr)
+
+	if disclosurePolicy != "" {
+		if err := verify.AssertDisclosurePolicy(
+			&verify.Bundle{Disclosure: hdr.Disclosure}, strings.ToUpper(disclosurePolicy)); err != nil {
+			fmt.Fprintln(os.Stderr, "verify:", err)
+			os.Exit(1)
+		}
+	}
+
+	r := verify.VerifyV2Production(raw, false)
+
+	if asJSON {
+		msgs := make([]string, 0, len(r.Divergences))
+		for _, d := range r.Divergences {
+			msgs = append(msgs, d.Msg)
+		}
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		_ = enc.Encode(map[string]any{
+			"source":       src,
+			"version":      hdr.Version,
+			"circuit_id":   hdr.CircuitID,
+			"disclosure":   hdr.Disclosure,
+			"ok":           r.OK,
+			"chain_length": r.ChainLength,
+			"verdict":      r.V2Verdict,
+			"divergences":  msgs,
+		})
+	} else {
+		fmt.Printf("Bundle: %s\n", src)
+		fmt.Printf("Version: %s\n", hdr.Version)
+		fmt.Printf("Circuit: %s  Disclosure: %s\n", hdr.CircuitID, hdr.Disclosure)
+		fmt.Printf("Chain length: %d\n\n", r.ChainLength)
+		if v := r.V2Verdict; v != nil {
+			fmt.Printf("  proof_valid=%v disclosure_valid=%v commitments_valid=%v signature_valid=%v chain_policy_valid=%v\n\n",
+				v.ProofValid, v.DisclosureValid, v.CommitmentsValid, v.SignatureValid, v.ChainPolicyValid)
+		}
+		if r.OK {
+			fmt.Println("✓ Verification PASSED (konareef-bundle/v2)")
+		} else {
+			fmt.Println("✗ Verification FAILED")
+			for _, d := range r.Divergences {
+				fmt.Printf("  - %s\n", d.Msg)
+			}
+		}
+	}
+
+	if !r.OK {
+		os.Exit(1)
+	}
+}
+
+func runTUI(args []string) {
+	fs := flag.NewFlagSet("konareef", flag.ExitOnError)
+	server := fs.String("server", "http://localhost:4000", "reef-core base URL")
+	token := fs.String("token", "", "session token (default: $KONAREEF_TOKEN) — required for mutating actions")
+	fs.Parse(args)
+
+	sessionToken := *token
+	if sessionToken == "" {
+		sessionToken = os.Getenv("KONAREEF_TOKEN")
+	}
+
+	client := api.NewClient(*server).WithToken(sessionToken)
+
+	// Create a WebSocket client when a session token is available; without a
+	// token the WS connection would be rejected, so wsClient remains nil.
+	var wsClient *ws.Client
+	if sessionToken != "" {
+		wsClient = ws.New(*server, sessionToken)
+	}
+
+	app := tui.NewApp(client, wsClient)
+
+	p := tea.NewProgram(app, tea.WithAltScreen())
+
+	// Start the WS listener in a background goroutine so it can dispatch
+	// tea.Msg values into the program's event loop.
+	if wsClient != nil {
+		go wsClient.Connect(p)
+	}
+
+	if _, err := p.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+
+	// Clean up the WebSocket connection after the program exits.
+	if wsClient != nil {
+		wsClient.Close()
+	}
+}
+
+func runSmoke(args []string) {
+	fs := flag.NewFlagSet("smoke", flag.ExitOnError)
+	server := fs.String("server", "http://localhost:4000", "reef-core base URL")
+	token := fs.String("token", "", "session token (default: $KONAREEF_TOKEN)")
+	timeout := fs.Duration("timeout", 120*time.Second, "poll timeout for custody proof")
+	lifecycle := fs.Bool("lifecycle", false, "run full lifecycle smoke (spawn + stream + cost + kill + exit) instead of the default spawn+proof test")
+	memoryRoundtrip := fs.Bool("memory-roundtrip", false, "additionally verify Phase 1.5 Layer 1 memory entries persist after agent_exited (lifecycle mode only; requires reef-core with the matching feature)")
+	podSpec := fs.String("pod", "", "spec of a previously installed signed pod (handle/name@version); attaches the cached pod_attestation to the spawn request so the resulting structured_bundle commitment is tied to the signed manifest (P0.3R)")
+	fs.Parse(args)
+
+	cfg := smoke.Default()
+	cfg.BaseURL = *server
+	cfg.Timeout = *timeout
+	cfg.MemoryRoundtrip = *memoryRoundtrip
+
+	cfg.SessionToken = *token
+	if cfg.SessionToken == "" {
+		cfg.SessionToken = smoke.TokenFromEnv()
+	}
+
+	// --pod handle/name@version: load the cached attestation from
+	// the local install dir and attach it to the spawn. Failing to
+	// locate or parse the cache is fatal — the user asked for a
+	// signed-pod spawn and got something else would be the worst
+	// possible silent fallback.
+	if *podSpec != "" {
+		handle, podName, version, err := parsePodSpec(*podSpec)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "smoke --pod:", err)
+			os.Exit(2)
+		}
+		if version == "" {
+			fmt.Fprintln(os.Stderr, "smoke --pod: explicit @<version> required (no @latest in cache)")
+			os.Exit(2)
+		}
+		home, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "smoke --pod: locate home directory:", err)
+			os.Exit(1)
+		}
+		att, err := install.LoadCachedAttestation(home, handle, podName, version)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "smoke --pod: load cached attestation:", err)
+			os.Exit(1)
+		}
+		cfg.PodAttestation = att
+	}
+
+	var err error
+	if *lifecycle {
+		err = smoke.RunLifecycle(cfg)
+	} else {
+		err = smoke.Run(cfg)
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "smoke failed:", err)
+		os.Exit(1)
+	}
+}
