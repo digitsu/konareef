@@ -1,0 +1,21 @@
+#!konareef-toml/v1
+[budget]
+cap = 1000
+per_invocation = 50
+[directive]
+max_iterations = 10
+model = "anthropic/claude-sonnet-4-6"
+task = "Research the topic"
+temperature = 0.7
+tools = [
+"github",
+"web-search"
+]
+[pod]
+name = "research-bot"
+runtime = "orca"
+version = "1.0.0"
+[_files]
+"README.md" = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+"prompts/examples.md" = "sha256:7570d04897627021187bdfa11b045fcfbe1a529a508b2e9dba05d0b1ee985b4d"
+"prompts/system.md" = "sha256:9eec28886f411e97b83706b08ee7d886d0de99dd2b8498ecea86208e10cfc712"

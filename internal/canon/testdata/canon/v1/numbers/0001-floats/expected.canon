@@ -1,0 +1,11 @@
+#!konareef-toml/v1
+[f]
+a_exp_pos = 100.0
+b_exp_neg = 0.15
+c_seven = 0.7
+d_neg_zero = 0.0
+e_zero = 0.0
+f_max = 1000000.0
+g_repeating = 0.333333
+h_already_decimal = 42.5
+[_files]
