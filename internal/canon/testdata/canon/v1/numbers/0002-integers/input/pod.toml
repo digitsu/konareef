@@ -1,0 +1,9 @@
+[i]
+a_hex = 0xFF
+b_octal = 0o755
+c_binary = 0b1010
+d_underscored = 1_000_000
+e_negative = -42
+f_zero = 0
+g_i64_max = 9223372036854775807
+h_i64_min = -9223372036854775808

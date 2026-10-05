@@ -1,0 +1,678 @@
+{
+  "format": "konareef-egress-vectors/v1",
+  "_comment": "Shared egress conformance vectors (K4-01). internal/pod/egress_review_test.go checks the konareef scanner against this file. scripts/check_egress_vectors.exs checks the reef-core scanner (EgressDeclaration and EgressScanner at a git ref) against the same file. When both pass, the client and the server agree on every case below. A change here needs a matching change on the other side in a linked MR. scanner_version and policy_version name the reef-core scanner constants these expectations were checked against. Findings are compared as sets, because neither side promises an order.",
+  "scanner_version": "v1",
+  "policy_version": "v1",
+  "platform_host": "api.anthropic.com:443",
+  "host_matching": [
+    {
+      "declared": "api.example.com",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": true
+    },
+    {
+      "declared": "api.example.com",
+      "host": "api.example.com",
+      "port": 8080,
+      "allowed": false
+    },
+    {
+      "declared": "api.example.com:8080",
+      "host": "api.example.com",
+      "port": 8080,
+      "allowed": true
+    },
+    {
+      "declared": "api.example.com:0443",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": true,
+      "note": "ports compare as numbers"
+    },
+    {
+      "declared": "api.example.com:0",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": false,
+      "note": "a port outside 1..65535 is not a port; the whole entry is read as a host"
+    },
+    {
+      "declared": "*.example.com",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": true
+    },
+    {
+      "declared": "*.example.com",
+      "host": "a.b.example.com",
+      "port": 443,
+      "allowed": true
+    },
+    {
+      "declared": "*.example.com",
+      "host": "example.com",
+      "port": 443,
+      "allowed": false,
+      "note": "a wildcard never matches the apex"
+    },
+    {
+      "declared": "*.example.com",
+      "host": "badexample.com",
+      "port": 443,
+      "allowed": false,
+      "note": "a wildcard never matches an unrelated suffix"
+    },
+    {
+      "declared": "*.example.com",
+      "host": "api.example.com.evil.net",
+      "port": 443,
+      "allowed": false
+    },
+    {
+      "declared": "*.example.com:8443",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": false
+    },
+    {
+      "declared": "API.Example.com.",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": true,
+      "note": "lowercased, one trailing dot stripped"
+    },
+    {
+      "declared": "api.example.com",
+      "host": "API.EXAMPLE.COM.",
+      "port": 443,
+      "allowed": true,
+      "note": "the requested host is normalized the same way"
+    },
+    {
+      "declared": "[::1]:8443",
+      "host": "[::1]",
+      "port": 8443,
+      "allowed": true,
+      "note": "bracketed IPv6"
+    },
+    {
+      "declared": "[::1]",
+      "host": "[::1]",
+      "port": 443,
+      "allowed": true
+    }
+  ],
+  "ip_literal": [
+    {
+      "host": "127.0.0.1",
+      "ip": true
+    },
+    {
+      "host": "127.1",
+      "ip": true
+    },
+    {
+      "host": "2130706433",
+      "ip": true
+    },
+    {
+      "host": "0x7f000001",
+      "ip": true
+    },
+    {
+      "host": "0177.0.0.1",
+      "ip": true
+    },
+    {
+      "host": "0",
+      "ip": true
+    },
+    {
+      "host": "1.16777215",
+      "ip": true
+    },
+    {
+      "host": "1.16777216",
+      "ip": false
+    },
+    {
+      "host": "4294967296",
+      "ip": false
+    },
+    {
+      "host": "256.1",
+      "ip": false
+    },
+    {
+      "host": "08.1.1.1",
+      "ip": false
+    },
+    {
+      "host": "1.2.3.4.5",
+      "ip": false
+    },
+    {
+      "host": "::1",
+      "ip": true
+    },
+    {
+      "host": "[::1]",
+      "ip": true
+    },
+    {
+      "host": "[2001:db8::1]",
+      "ip": true
+    },
+    {
+      "host": "::ffff:127.0.0.1",
+      "ip": true
+    },
+    {
+      "host": "example.com",
+      "ip": false
+    },
+    {
+      "host": "1e2.example.com",
+      "ip": false
+    },
+    {
+      "host": "999.999.999.999",
+      "ip": false
+    },
+    {
+      "host": "0x",
+      "ip": false
+    },
+    {
+      "host": "0-0",
+      "ip": true,
+      "note": "the server's integer parse reads -0 as 0"
+    },
+    {
+      "host": "10.0-0",
+      "ip": true
+    },
+    {
+      "host": "0x-0",
+      "ip": true
+    },
+    {
+      "host": "-0",
+      "ip": true
+    },
+    {
+      "host": "-1",
+      "ip": false
+    },
+    {
+      "host": "0--0",
+      "ip": false
+    }
+  ],
+  "declaration_presence": [
+    {
+      "name": "absent",
+      "manifest": "[pod]\nname = \"p\"",
+      "declared": false,
+      "rules": [],
+      "hash_group": "absent"
+    },
+    {
+      "name": "bare table",
+      "manifest": "[network]",
+      "declared": true,
+      "rules": [],
+      "hash_group": "bare"
+    },
+    {
+      "name": "empty egress",
+      "manifest": "[network]\negress = []",
+      "declared": true,
+      "rules": [],
+      "hash_group": "empty"
+    },
+    {
+      "name": "one exact host",
+      "manifest": "[network]\negress = [\"api.example.com\"]",
+      "declared": true,
+      "rules": [
+        {
+          "host": "api.example.com",
+          "port": 443,
+          "wildcard": false
+        }
+      ],
+      "hash_group": "one"
+    },
+    {
+      "name": "wildcard and port",
+      "manifest": "[network]\negress = [\"*.example.com\", \"svc.example.com:8443\"]",
+      "declared": true,
+      "rules": [
+        {
+          "host": "example.com",
+          "port": 443,
+          "wildcard": true
+        },
+        {
+          "host": "svc.example.com",
+          "port": 8443,
+          "wildcard": false
+        }
+      ],
+      "hash_group": "two"
+    },
+    {
+      "name": "gateway only (OD-2 a)",
+      "manifest": "[[network.gateway]]\nhost = \"api.example.com\"\nsecret = \"K\"\nauth = \"bearer\"\nmax_calls = 1",
+      "declared": true,
+      "rules": [
+        {
+          "host": "api.example.com",
+          "port": 443,
+          "wildcard": false
+        }
+      ],
+      "hash_group": "gateway"
+    },
+    {
+      "name": "sealed-grants marker only",
+      "manifest": "[network]\nsealed_grants = \"konareef-sealed-grants/v1\"",
+      "declared": true,
+      "rules": [],
+      "hash_group": "bare"
+    }
+  ],
+  "findings": [
+    {
+      "name": "undeclared host in inline directive.task",
+      "manifest": "[directive]\ntask = \"Fetch https://evil.example.com/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "evil.example.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "declared exact host referenced, no finding",
+      "manifest": "[network]\negress = [\"good.example.com\"]\n\n[directive]\ntask = \"Fetch https://good.example.com/x\"",
+      "files": {},
+      "findings": []
+    },
+    {
+      "name": "wildcard declared; declared_unused never fires for a wildcard",
+      "manifest": "[network]\negress = [\"*.example.com\"]",
+      "files": {},
+      "findings": [
+        {
+          "code": "wildcard_declared",
+          "host": "*.example.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "IP literal declared",
+      "manifest": "[network]\negress = [\"127.0.0.1\"]",
+      "files": {},
+      "findings": [
+        {
+          "code": "ip_literal_declared",
+          "host": "127.0.0.1",
+          "port": 443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "declared_unused",
+          "host": "127.0.0.1",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "packed-integer IP literal declared",
+      "manifest": "[network]\negress = [\"2130706433\"]",
+      "files": {},
+      "findings": [
+        {
+          "code": "ip_literal_declared",
+          "host": "2130706433",
+          "port": 443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "declared_unused",
+          "host": "2130706433",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "non-443 declared entry",
+      "manifest": "[network]\negress = [\"example.com:22\"]",
+      "files": {},
+      "findings": [
+        {
+          "code": "non_tls_port",
+          "host": "example.com",
+          "port": 22,
+          "source_class": "manifest"
+        },
+        {
+          "code": "declared_unused",
+          "host": "example.com",
+          "port": 22,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "non-443 gateway entry counts as a declaration and is flagged the same way",
+      "manifest": "[[network.gateway]]\nhost = \"api.example.com:8443\"\nsecret = \"K\"\nauth = \"bearer\"\nmax_calls = 1",
+      "files": {},
+      "findings": [
+        {
+          "code": "non_tls_port",
+          "host": "api.example.com",
+          "port": 8443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "declared_unused",
+          "host": "api.example.com",
+          "port": 8443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "plain http scheme adds non_tls_port beside undeclared_host",
+      "manifest": "[directive]\ntask = \"Fetch http://plain.example.com/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "plain.example.com",
+          "port": 80,
+          "source_class": "manifest"
+        },
+        {
+          "code": "non_tls_port",
+          "host": "plain.example.com",
+          "port": 80,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "plain http to a host declared on port 80 is declared but still non-TLS",
+      "manifest": "[network]\negress = [\"plain.example.com:80\"]\n\n[directive]\ntask = \"Fetch http://plain.example.com/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "non_tls_port",
+          "host": "plain.example.com",
+          "port": 80,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "dynamic host template placeholder is reported as its literal text",
+      "manifest": "[directive]\ntask = \"curl https://{{HOST}}/webhook and https://${TARGET}/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "{{host}}",
+          "port": 443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "${target}",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "platform host takes precedence over undeclared_host",
+      "manifest": "[directive]\ntask = \"curl https://api.anthropic.com/v1/messages\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "platform_host_referenced",
+          "host": "api.anthropic.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "explicitly declared platform host is not reported",
+      "manifest": "[network]\negress = [\"api.anthropic.com\"]\n\n[directive]\ntask = \"curl https://api.anthropic.com/v1/messages\"",
+      "files": {},
+      "findings": []
+    },
+    {
+      "name": "trailing dot on a referenced host matches the declaration",
+      "manifest": "[network]\negress = [\"api.example.com\"]\n\n[directive]\ntask = \"See https://api.example.com./v1 and https://API.example.com/v2\"",
+      "files": {},
+      "findings": []
+    },
+    {
+      "name": "userinfo is dropped and the explicit port is read",
+      "manifest": "[network]\negress = [\"api.example.com:8443\"]\n\n[directive]\ntask = \"curl https://user:pw@api.example.com:8443/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "non_tls_port",
+          "host": "api.example.com",
+          "port": 8443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "wildcard covers a subdomain reference but not the apex",
+      "manifest": "[network]\negress = [\"*.example.com\"]\n\n[directive]\ntask = \"https://api.example.com/a https://example.com/b\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "wildcard_declared",
+          "host": "*.example.com",
+          "port": 443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "example.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "declared exact host that no text names is declared_unused",
+      "manifest": "[network]\negress = [\"used.example.com\", \"spare.example.com\"]\n\n[directive]\ntask = \"https://used.example.com/\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "declared_unused",
+          "host": "spare.example.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "gateway host named by URL is declared",
+      "manifest": "[[network.gateway]]\nhost = \"api.example.com\"\nsecret = \"K\"\nauth = \"bearer\"\nmax_calls = 1\n\n[directive]\ntask = \"https://api.example.com/v1\"",
+      "files": {},
+      "findings": []
+    },
+    {
+      "name": "bracketed IPv6 reference to a declared address",
+      "manifest": "[network]\negress = [\"[2001:db8::1]:8443\"]\n\n[directive]\ntask = \"https://[2001:db8::1]:8443/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "ip_literal_declared",
+          "host": "[2001:db8::1]",
+          "port": 8443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "non_tls_port",
+          "host": "[2001:db8::1]",
+          "port": 8443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "non-ASCII host is stored as the invalid-host sentinel",
+      "manifest": "[directive]\ntask = \"https://exämple.com/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "<invalid-host>",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "one source class per context kind",
+      "manifest": "[directive]\ntemplate = \"./directive.md\"\n\n[[context.skills]]\nsource = \"./skills\"\n\n[[context.prompts]]\npath = \"./prompts/p.md\"\n\n[[context.memory]]\nkind = \"file\"\npath = \"./memory/m.md\"\n\n[[context.memory]]\nkind = \"http\"\nurl = \"https://mem.example.com/feed\"",
+      "files": {
+        "directive.md": "Go to https://dir.example.com/x.",
+        "skills/a/SKILL.md": "Call https://skill.example.com/api",
+        "skills/notes.txt": "https://not-scanned.example.com/ is not markdown",
+        "prompts/p.md": "(https://prompt.example.com/q)",
+        "memory/m.md": "https://memfile.example.com/"
+      },
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "dir.example.com",
+          "port": 443,
+          "source_class": "directive"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "skill.example.com",
+          "port": 443,
+          "source_class": "skill"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "prompt.example.com",
+          "port": 443,
+          "source_class": "prompt"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "memfile.example.com",
+          "port": 443,
+          "source_class": "memory_file"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "mem.example.com",
+          "port": 443,
+          "source_class": "memory_http"
+        }
+      ]
+    },
+    {
+      "name": "uppercase scheme is still a URL",
+      "manifest": "[directive]\ntask = \"HTTPS://Shout.Example.com/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "shout.example.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "a vertical tab ends a URL, as whitespace does",
+      "manifest": "[network]\negress = [\"api.example.com\"]\n\n[[context.prompts]]\npath = \"./p.md\"",
+      "files": {
+        "p.md": "https://api.example.com/p\u000bhttps://evil.example.net/x"
+      },
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "evil.example.net",
+          "port": 443,
+          "source_class": "prompt"
+        }
+      ]
+    },
+    {
+      "name": "a vertical tab ends a declared memory URL's authority",
+      "manifest": "[network]\negress = [\"api.example.com\"]\n\n[[context.memory]]\nkind = \"http\"\nurl = \"https://api.example.com\\u000B.evil.net/\"",
+      "files": {},
+      "findings": [],
+      "safety_check_stricter": true,
+      "note": "The review ends the authority at the vertical tab and sees a declared host. konareef's listing pre-check refuses the whole URL because net/url rejects the control byte. The pre-check is stricter than the server here, which is the safe direction."
+    }
+  ],
+  "uninspectable": [
+    {
+      "name": "skill path with a doubled slash",
+      "manifest": "[[context.skills]]\nsource = \"./skills//a.md\"",
+      "files": {
+        "skills/a.md": "x"
+      }
+    },
+    {
+      "name": "skill path with a dot segment",
+      "manifest": "[[context.skills]]\nsource = \"./skills/./a.md\"",
+      "files": {
+        "skills/a.md": "x"
+      }
+    },
+    {
+      "name": "skill directory with a trailing slash",
+      "manifest": "[[context.skills]]\nsource = \"./skills/\"",
+      "files": {
+        "skills/a.md": "x"
+      }
+    },
+    {
+      "name": "prompt path with a dot segment",
+      "manifest": "[[context.prompts]]\npath = \"./p/./q.md\"",
+      "files": {
+        "p/q.md": "x"
+      }
+    },
+    {
+      "name": "missing prompt",
+      "manifest": "[[context.prompts]]\npath = \"./p/q.md\"",
+      "files": {}
+    },
+    {
+      "name": "skill directory with no file in it",
+      "manifest": "[[context.skills]]\nsource = \"./skills\"",
+      "files": {},
+      "dirs": [
+        "skills"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+#!konareef-toml/v1
+pod_spec_version = "0.1"
+[budget]
+max_sats = 5000
+[dependencies]
+secrets = ["ELEVENLABS_API_KEY"]
+[directive]
+task = "Speak."
+[network]
+egress = ["cdn.example.com"]
+[[network.gateway]]
+auth = "header:xi-api-key"
+host = "api.elevenlabs.io"
+max_calls = 3
+secret = "ELEVENLABS_API_KEY"
+[pod]
+name = "gateway-vector"
+version = "0.1.0"
+[runtime]
+kind = "lobster"
+[_files]

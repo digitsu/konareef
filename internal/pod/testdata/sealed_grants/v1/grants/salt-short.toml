@@ -1,0 +1,12 @@
+format = "konareef-sealed-grants/v1"
+salt = "abcd"
+
+[[grant]]
+host = "mcp.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q"
+mcp_tools = ["cnryc00k7q_search"]

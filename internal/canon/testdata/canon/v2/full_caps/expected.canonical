@@ -1,0 +1,8 @@
+#!konareef-toml/v2
+[budget]
+max_sats = 200000
+[pod]
+name = "full-caps"
+[_files]
+[_commit]
+fields_root = "poseidon:5577d758fa1bac694bf3cd97c54fbfd9c134f9398b74322762da2099c2e8c929"

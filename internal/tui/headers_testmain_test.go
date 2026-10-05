@@ -1,0 +1,22 @@
+// Copyright 2026 Jerry David Chan, Konareef.ai
+// SPDX-License-Identifier: Apache-2.0
+
+// headers_testmain_test.go: the test entry point of the tui package. It clears the default
+// header services of the chain-head anchor check, so that no test here
+// can reach the public header services, also if a future test fixture
+// carries a chain-head anchor.
+package tui
+
+import (
+	"os"
+	"testing"
+
+	"github.com/digitsu/konareef/internal/verify"
+)
+
+// TestMain clears verify.DefaultHeaderServices and runs the tests.
+// Input: m. Output: the exit code of the test run.
+func TestMain(m *testing.M) {
+	verify.DefaultHeaderServices = nil
+	os.Exit(m.Run())
+}

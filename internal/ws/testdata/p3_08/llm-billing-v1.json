@@ -1,0 +1,590 @@
+{
+  "agent_channel_push": "llm",
+  "agent_llm_version": 1,
+  "events": [
+    {
+      "description": "A normal call: settled on terminal usage at the request model's prices.",
+      "name": "settled-usage",
+      "push": {
+        "agent_id": "agent-fixture-1",
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 800,
+        "call_id": "a0000000000000000000000000000001",
+        "duration_ms": 2140,
+        "harness_key_signal": false,
+        "image_count": 0,
+        "image_token_bound": 0,
+        "input_tokens": 1200,
+        "model": "claude-sonnet-4-5",
+        "output_tokens": 340,
+        "over_budget_sats": null,
+        "price_basis": "request_entry",
+        "quarantined_entry": null,
+        "reason": null,
+        "refused": false,
+        "reserve_sats": 300,
+        "response_model": "claude-sonnet-4-5-20250929",
+        "sats": 118,
+        "settle_basis": "usage",
+        "status": 200,
+        "streamed": true,
+        "v": 1
+      }
+    },
+    {
+      "description": "The stream was cut before terminal usage: settled at the reserve floor by the worker.",
+      "name": "settled-floor-by-worker",
+      "push": {
+        "agent_id": "agent-fixture-1",
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "call_id": "a0000000000000000000000000000002",
+        "duration_ms": 2140,
+        "harness_key_signal": false,
+        "image_count": 0,
+        "image_token_bound": 0,
+        "input_tokens": 1200,
+        "model": "claude-sonnet-4-5",
+        "output_tokens": 0,
+        "over_budget_sats": null,
+        "price_basis": "request_entry",
+        "quarantined_entry": null,
+        "reason": null,
+        "refused": false,
+        "reserve_sats": 300,
+        "response_model": "claude-sonnet-4-5-20250929",
+        "sats": 300,
+        "settle_basis": "reserve_floor",
+        "status": 200,
+        "streamed": true,
+        "v": 1
+      }
+    },
+    {
+      "description": "The worker died or ignored the drain; the run floor-settled the row. The worker-only fields (status, streamed, duration_ms, image fields, harness_key_signal) are null. The same shape is used for a settle counted from the ledger after its message was lost.",
+      "name": "settled-floor-by-run",
+      "push": {
+        "agent_id": "agent-fixture-1",
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "call_id": "a0000000000000000000000000000003",
+        "duration_ms": null,
+        "harness_key_signal": null,
+        "image_count": null,
+        "image_token_bound": null,
+        "input_tokens": 0,
+        "model": "claude-sonnet-4-5",
+        "output_tokens": 0,
+        "over_budget_sats": null,
+        "price_basis": "request_entry",
+        "quarantined_entry": null,
+        "reason": null,
+        "refused": false,
+        "reserve_sats": 300,
+        "response_model": null,
+        "sats": 300,
+        "settle_basis": "reserve_floor",
+        "status": null,
+        "streamed": null,
+        "v": 1
+      }
+    },
+    {
+      "description": "The response named a model the entry does not list: quarantined, priced at the table ceiling (never below the reserve).",
+      "name": "settled-pricing-mismatch",
+      "push": {
+        "agent_id": "agent-fixture-1",
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 800,
+        "call_id": "a0000000000000000000000000000004",
+        "duration_ms": 2140,
+        "harness_key_signal": false,
+        "image_count": 0,
+        "image_token_bound": 0,
+        "input_tokens": 1200,
+        "model": "claude-sonnet-4-5",
+        "output_tokens": 340,
+        "over_budget_sats": null,
+        "price_basis": "mismatch_ceiling",
+        "quarantined_entry": {
+          "entry_sha256": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+          "provider": "anthropic",
+          "request_model": "claude-sonnet-4-5",
+          "response_model": "claude-unknown-9"
+        },
+        "reason": "pricing_mismatch",
+        "refused": false,
+        "reserve_sats": 300,
+        "response_model": "claude-unknown-9",
+        "sats": 450,
+        "settle_basis": "usage",
+        "status": 200,
+        "streamed": true,
+        "v": 1
+      }
+    },
+    {
+      "description": "A settle that took the run over its budget: over_budget_sats is the run's cumulative overage.",
+      "name": "settled-over-budget",
+      "push": {
+        "agent_id": "agent-fixture-1",
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 800,
+        "call_id": "a0000000000000000000000000000005",
+        "duration_ms": 2140,
+        "harness_key_signal": false,
+        "image_count": 0,
+        "image_token_bound": 0,
+        "input_tokens": 1200,
+        "model": "claude-sonnet-4-5",
+        "output_tokens": 340,
+        "over_budget_sats": 250,
+        "price_basis": "request_entry",
+        "quarantined_entry": null,
+        "reason": null,
+        "refused": false,
+        "reserve_sats": 300,
+        "response_model": "claude-sonnet-4-5-20250929",
+        "sats": 700,
+        "settle_basis": "usage",
+        "status": 200,
+        "streamed": true,
+        "v": 1
+      }
+    },
+    {
+      "description": "A reserve released before any byte went upstream: sats 0, settle_basis unsent.",
+      "name": "released-unsent",
+      "push": {
+        "agent_id": "agent-fixture-1",
+        "cache_creation_input_tokens": null,
+        "cache_read_input_tokens": null,
+        "call_id": "a0000000000000000000000000000006",
+        "duration_ms": null,
+        "harness_key_signal": null,
+        "image_count": null,
+        "image_token_bound": null,
+        "input_tokens": null,
+        "model": "claude-sonnet-4-5",
+        "output_tokens": null,
+        "over_budget_sats": null,
+        "price_basis": null,
+        "quarantined_entry": null,
+        "reason": null,
+        "refused": false,
+        "reserve_sats": 300,
+        "response_model": null,
+        "sats": 0,
+        "settle_basis": "unsent",
+        "status": null,
+        "streamed": null,
+        "v": 1
+      }
+    },
+    {
+      "description": "Refused before the body was read (404 path): model and image fields are null.",
+      "name": "refused-before-body",
+      "push": {
+        "agent_id": "agent-fixture-1",
+        "cache_creation_input_tokens": null,
+        "cache_read_input_tokens": null,
+        "call_id": null,
+        "duration_ms": null,
+        "harness_key_signal": false,
+        "image_count": null,
+        "image_token_bound": null,
+        "input_tokens": null,
+        "model": null,
+        "output_tokens": null,
+        "over_budget_sats": null,
+        "price_basis": null,
+        "quarantined_entry": null,
+        "reason": "not_found",
+        "refused": true,
+        "reserve_sats": null,
+        "response_model": null,
+        "sats": 0,
+        "settle_basis": null,
+        "status": 404,
+        "streamed": null,
+        "v": 1
+      }
+    },
+    {
+      "description": "Refused by the model allowlist: the model the pod named is never reported.",
+      "name": "refused-model-not-allowed",
+      "push": {
+        "agent_id": "agent-fixture-1",
+        "cache_creation_input_tokens": null,
+        "cache_read_input_tokens": null,
+        "call_id": null,
+        "duration_ms": null,
+        "harness_key_signal": false,
+        "image_count": 0,
+        "image_token_bound": null,
+        "input_tokens": null,
+        "model": null,
+        "output_tokens": null,
+        "over_budget_sats": null,
+        "price_basis": null,
+        "quarantined_entry": null,
+        "reason": "model_not_allowed",
+        "refused": true,
+        "reserve_sats": null,
+        "response_model": null,
+        "sats": 0,
+        "settle_basis": null,
+        "status": 403,
+        "streamed": null,
+        "v": 1
+      }
+    },
+    {
+      "description": "Refused because the reserve did not fit the budget; the run then stops (429).",
+      "name": "refused-budget-exhausted",
+      "push": {
+        "agent_id": "agent-fixture-1",
+        "cache_creation_input_tokens": null,
+        "cache_read_input_tokens": null,
+        "call_id": null,
+        "duration_ms": null,
+        "harness_key_signal": true,
+        "image_count": 1,
+        "image_token_bound": 3136,
+        "input_tokens": null,
+        "model": "claude-sonnet-4-5",
+        "output_tokens": null,
+        "over_budget_sats": null,
+        "price_basis": null,
+        "quarantined_entry": null,
+        "reason": "budget_exhausted",
+        "refused": true,
+        "reserve_sats": null,
+        "response_model": null,
+        "sats": 0,
+        "settle_basis": null,
+        "status": 429,
+        "streamed": null,
+        "v": 1
+      }
+    }
+  ],
+  "pod_events_push": "agent_llm",
+  "proof_totals": [
+    {
+      "description": "Two usage settles and no egress.",
+      "egress_sats": 0,
+      "expect": {
+        "c": 158,
+        "custody_line": "TOTAL_SATS: 158",
+        "llm_sats": 158,
+        "total_sats": 158
+      },
+      "harness_total_sats": 999999,
+      "llm_custody": true,
+      "name": "custody-normal",
+      "released_rows": 0,
+      "settled_rows": [
+        {
+          "sats": 118,
+          "settle_basis": "usage"
+        },
+        {
+          "sats": 40,
+          "settle_basis": "usage"
+        }
+      ]
+    },
+    {
+      "description": "A floor settle is charged; a released reserve costs 0.",
+      "egress_sats": 0,
+      "expect": {
+        "c": 418,
+        "custody_line": "TOTAL_SATS: 418",
+        "llm_sats": 418,
+        "total_sats": 418
+      },
+      "harness_total_sats": 5,
+      "llm_custody": true,
+      "name": "custody-floor-and-released",
+      "released_rows": 1,
+      "settled_rows": [
+        {
+          "sats": 118,
+          "settle_basis": "usage"
+        },
+        {
+          "sats": 300,
+          "settle_basis": "reserve_floor"
+        }
+      ]
+    },
+    {
+      "description": "A mismatch settle at the ceiling plus gateway egress.",
+      "egress_sats": 12,
+      "expect": {
+        "c": 462,
+        "custody_line": "TOTAL_SATS: 462",
+        "llm_sats": 450,
+        "total_sats": 462
+      },
+      "harness_total_sats": 10,
+      "llm_custody": true,
+      "name": "custody-mismatch-and-egress",
+      "released_rows": 0,
+      "settled_rows": [
+        {
+          "price_basis": "mismatch_ceiling",
+          "sats": 450,
+          "settle_basis": "usage"
+        }
+      ]
+    },
+    {
+      "description": "Custody on and no LLM call: llm_sats is 0 even when the harness reports a total.",
+      "egress_sats": 4,
+      "expect": {
+        "c": 4,
+        "custody_line": "TOTAL_SATS: 4",
+        "llm_sats": 0,
+        "total_sats": 4
+      },
+      "harness_total_sats": 70,
+      "llm_custody": true,
+      "name": "custody-no-calls",
+      "released_rows": 0,
+      "settled_rows": []
+    },
+    {
+      "description": "Custody off: llm_sats is the harness total, as before P3-08.",
+      "egress_sats": 4,
+      "expect": {
+        "c": 54,
+        "custody_line": "TOTAL_SATS: 54",
+        "llm_sats": 50,
+        "total_sats": 54
+      },
+      "harness_total_sats": 50,
+      "llm_custody": false,
+      "name": "custody-off-legacy",
+      "released_rows": 0,
+      "settled_rows": []
+    }
+  ],
+  "schema": "reef-core/p3-08-llm-billing-fixtures",
+  "sequences": [
+    {
+      "description": "A reconnect backfill repeats a settled event. Count each call_id once.",
+      "expect": {
+        "llm_sats": 140,
+        "settled_calls": 2
+      },
+      "name": "replayed-call-id",
+      "pushes": [
+        {
+          "agent_id": "agent-fixture-1",
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 800,
+          "call_id": "b0000000000000000000000000000001",
+          "duration_ms": 2140,
+          "harness_key_signal": false,
+          "image_count": 0,
+          "image_token_bound": 0,
+          "input_tokens": 1200,
+          "model": "claude-sonnet-4-5",
+          "output_tokens": 340,
+          "over_budget_sats": null,
+          "price_basis": "request_entry",
+          "quarantined_entry": null,
+          "reason": null,
+          "refused": false,
+          "reserve_sats": 300,
+          "response_model": "claude-sonnet-4-5-20250929",
+          "sats": 100,
+          "settle_basis": "usage",
+          "status": 200,
+          "streamed": true,
+          "v": 1
+        },
+        {
+          "agent_id": "agent-fixture-1",
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 800,
+          "call_id": "b0000000000000000000000000000002",
+          "duration_ms": 2140,
+          "harness_key_signal": false,
+          "image_count": 0,
+          "image_token_bound": 0,
+          "input_tokens": 1200,
+          "model": "claude-sonnet-4-5",
+          "output_tokens": 340,
+          "over_budget_sats": null,
+          "price_basis": "request_entry",
+          "quarantined_entry": null,
+          "reason": null,
+          "refused": false,
+          "reserve_sats": 300,
+          "response_model": "claude-sonnet-4-5-20250929",
+          "sats": 40,
+          "settle_basis": "usage",
+          "status": 200,
+          "streamed": true,
+          "v": 1
+        },
+        {
+          "agent_id": "agent-fixture-1",
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 800,
+          "call_id": "b0000000000000000000000000000001",
+          "duration_ms": 2140,
+          "harness_key_signal": false,
+          "image_count": 0,
+          "image_token_bound": 0,
+          "input_tokens": 1200,
+          "model": "claude-sonnet-4-5",
+          "output_tokens": 340,
+          "over_budget_sats": null,
+          "price_basis": "request_entry",
+          "quarantined_entry": null,
+          "reason": null,
+          "refused": false,
+          "reserve_sats": 300,
+          "response_model": "claude-sonnet-4-5-20250929",
+          "sats": 100,
+          "settle_basis": "usage",
+          "status": 200,
+          "streamed": true,
+          "v": 1
+        }
+      ]
+    },
+    {
+      "description": "over_budget_sats repeats the run's total overage; the last value is the overage, never the sum.",
+      "expect": {
+        "llm_sats": 950,
+        "over_budget_sats": 350,
+        "settled_calls": 2
+      },
+      "name": "cumulative-overage",
+      "pushes": [
+        {
+          "agent_id": "agent-fixture-1",
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 800,
+          "call_id": "b0000000000000000000000000000003",
+          "duration_ms": 2140,
+          "harness_key_signal": false,
+          "image_count": 0,
+          "image_token_bound": 0,
+          "input_tokens": 1200,
+          "model": "claude-sonnet-4-5",
+          "output_tokens": 340,
+          "over_budget_sats": 300,
+          "price_basis": "request_entry",
+          "quarantined_entry": null,
+          "reason": null,
+          "refused": false,
+          "reserve_sats": 300,
+          "response_model": "claude-sonnet-4-5-20250929",
+          "sats": 900,
+          "settle_basis": "usage",
+          "status": 200,
+          "streamed": true,
+          "v": 1
+        },
+        {
+          "agent_id": "agent-fixture-1",
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 800,
+          "call_id": "b0000000000000000000000000000004",
+          "duration_ms": 2140,
+          "harness_key_signal": false,
+          "image_count": 0,
+          "image_token_bound": 0,
+          "input_tokens": 1200,
+          "model": "claude-sonnet-4-5",
+          "output_tokens": 340,
+          "over_budget_sats": 350,
+          "price_basis": "request_entry",
+          "quarantined_entry": null,
+          "reason": null,
+          "refused": false,
+          "reserve_sats": 300,
+          "response_model": "claude-sonnet-4-5-20250929",
+          "sats": 50,
+          "settle_basis": "usage",
+          "status": 200,
+          "streamed": true,
+          "v": 1
+        },
+        {
+          "agent_id": "agent-fixture-1",
+          "cache_creation_input_tokens": null,
+          "cache_read_input_tokens": null,
+          "call_id": "b0000000000000000000000000000005",
+          "duration_ms": null,
+          "harness_key_signal": null,
+          "image_count": null,
+          "image_token_bound": null,
+          "input_tokens": null,
+          "model": "claude-sonnet-4-5",
+          "output_tokens": null,
+          "over_budget_sats": 350,
+          "price_basis": null,
+          "quarantined_entry": null,
+          "reason": null,
+          "refused": false,
+          "reserve_sats": 300,
+          "response_model": null,
+          "sats": 0,
+          "settle_basis": "unsent",
+          "status": null,
+          "streamed": null,
+          "v": 1
+        }
+      ]
+    },
+    {
+      "agent_cost_pushes": [
+        {
+          "agent_id": "agent-fixture-1",
+          "sats": 60
+        }
+      ],
+      "description": "A run without LLM custody sends no agent_llm; its LLM spend arrives as agent_cost, as before P3-08.",
+      "expect": {
+        "agent_cost_sats": 60,
+        "llm_sats": 0,
+        "settled_calls": 0
+      },
+      "name": "custody-off-legacy",
+      "pushes": []
+    }
+  ],
+  "version": 1,
+  "wire_keys": [
+    "v",
+    "agent_id",
+    "call_id",
+    "model",
+    "response_model",
+    "status",
+    "streamed",
+    "refused",
+    "reason",
+    "input_tokens",
+    "output_tokens",
+    "cache_creation_input_tokens",
+    "cache_read_input_tokens",
+    "image_count",
+    "image_token_bound",
+    "sats",
+    "reserve_sats",
+    "price_basis",
+    "settle_basis",
+    "over_budget_sats",
+    "quarantined_entry",
+    "harness_key_signal",
+    "duration_ms"
+  ]
+}

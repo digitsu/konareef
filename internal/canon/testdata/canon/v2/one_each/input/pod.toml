@@ -1,0 +1,13 @@
+# One model, one tool: the smallest non-trivial commitment.
+[pod]
+name = "one-each"
+
+[model]
+provider = "openai"
+name = "gpt-4o"
+
+[budget]
+max_sats = 1000
+
+[[context.tools]]
+source = "bash"

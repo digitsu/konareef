@@ -1,0 +1,532 @@
+<title>KonaReef — Proof of Faithful Execution</title>
+<style>
+  :root{
+    --ground:#090d12; --surface:#10171f; --raised:#151f2a; --sunken:#0c1219;
+    --hair:#22323f; --hair-strong:#2f4453;
+    --ink:#d3dde6; --muted:#8395a3; --faint:#5e6f7d;
+    --jade:#37d6a4; --jade-dim:#1f8f70; --jade-glow:rgba(55,214,164,.16);
+    --brass:#d9a24e; --brass-soft:#e6c188; --brass-dim:#8a6a34;
+    --fail:#e5595d; --fail-glow:rgba(229,89,93,.16); --btn-fg:#071f18;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --r:14px; --r-sm:9px; --maxw:1080px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --ground:#eef2f4; --surface:#ffffff; --raised:#f7fafb; --sunken:#eaeff2;
+      --hair:#d5dfe5; --hair-strong:#c0ced7;
+      --ink:#16232c; --muted:#556572; --faint:#7c8b97;
+      --jade:#12876a; --jade-dim:#8fd8c2; --jade-glow:rgba(18,135,106,.12);
+      --brass:#a9741e; --brass-soft:#c69a4f; --brass-dim:#c69a4f;
+      --fail:#c23b40; --fail-glow:rgba(194,59,64,.12); --btn-fg:#ffffff;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#090d12; --surface:#10171f; --raised:#151f2a; --sunken:#0c1219;
+    --hair:#22323f; --hair-strong:#2f4453; --ink:#d3dde6; --muted:#8395a3; --faint:#5e6f7d;
+    --jade:#37d6a4; --jade-dim:#1f8f70; --jade-glow:rgba(55,214,164,.16);
+    --brass:#d9a24e; --brass-soft:#e6c188; --brass-dim:#8a6a34;
+    --fail:#e5595d; --fail-glow:rgba(229,89,93,.16); --btn-fg:#071f18;
+  }
+  :root[data-theme="light"]{
+    --ground:#eef2f4; --surface:#ffffff; --raised:#f7fafb; --sunken:#eaeff2;
+    --hair:#d5dfe5; --hair-strong:#c0ced7; --ink:#16232c; --muted:#556572; --faint:#7c8b97;
+    --jade:#12876a; --jade-dim:#8fd8c2; --jade-glow:rgba(18,135,106,.12);
+    --brass:#a9741e; --brass-soft:#c69a4f; --brass-dim:#c69a4f;
+    --fail:#c23b40; --fail-glow:rgba(194,59,64,.12); --btn-fg:#ffffff;
+  }
+  *{box-sizing:border-box} body{margin:0}
+  .page{background:radial-gradient(1200px 600px at 50% -10%,var(--jade-glow),transparent 60%),var(--ground);
+    color:var(--ink); font-family:var(--sans); line-height:1.55; min-height:100vh;
+    padding:clamp(18px,4vw,48px) clamp(14px,4vw,32px) 72px}
+  .wrap{max-width:var(--maxw); margin:0 auto}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--faint)}
+  .label{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
+  header.mast{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:clamp(22px,5vw,40px)}
+  .brand{display:flex; align-items:center; gap:12px}
+  .brand .glyph{width:30px;height:30px;flex:0 0 auto}
+  .brand b{font-family:var(--mono); font-weight:600; letter-spacing:.04em; font-size:15px}
+  .brand span{color:var(--faint)}
+  .theme-toggle{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
+    background:transparent; border:1px solid var(--hair); border-radius:99px; padding:7px 13px; cursor:pointer}
+  .theme-toggle:hover{border-color:var(--hair-strong); color:var(--ink)}
+  .theme-toggle:focus-visible{outline:2px solid var(--jade); outline-offset:2px}
+
+  .hero{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:clamp(20px,4vw,44px);
+    align-items:center; border:1px solid var(--hair); border-radius:var(--r);
+    background:linear-gradient(180deg,var(--surface),var(--sunken)); padding:clamp(22px,4vw,40px); position:relative; overflow:hidden}
+  .hero::before{content:""; position:absolute; inset:0; pointer-events:none;
+    background-image:linear-gradient(var(--hair) 1px,transparent 1px),linear-gradient(90deg,var(--hair) 1px,transparent 1px);
+    background-size:38px 38px; opacity:.06;
+    -webkit-mask-image:radial-gradient(70% 70% at 30% 40%,#000,transparent); mask-image:radial-gradient(70% 70% at 30% 40%,#000,transparent)}
+  @media(max-width:760px){.hero{grid-template-columns:1fr}}
+  .seal-col{display:flex; flex-direction:column; align-items:center; gap:16px; position:relative; z-index:1}
+  .seal{position:relative; width:min(230px,64vw); aspect-ratio:1}
+  .seal svg{width:100%; height:100%; display:block}
+  .seal .ring{fill:none; stroke:var(--hair-strong); stroke-width:1.5}
+  .seal .ring-lit{fill:none; stroke:var(--jade); stroke-width:2.5; stroke-linecap:round; filter:drop-shadow(0 0 6px var(--jade-glow));
+    stroke-dasharray:var(--circ); stroke-dashoffset:var(--circ); transition:stroke-dashoffset 1.4s cubic-bezier(.4,0,.15,1)}
+  .seal.done .ring-lit{stroke-dashoffset:0}
+  .seal.fail .ring-lit{stroke:var(--fail); filter:drop-shadow(0 0 6px var(--fail-glow))}
+  .seal .tick{stroke:var(--jade); stroke-width:8; fill:none; stroke-linecap:round; stroke-linejoin:round;
+    stroke-dasharray:var(--tick); stroke-dashoffset:var(--tick); transition:stroke-dashoffset .5s ease .9s}
+  .seal.done .tick{stroke-dashoffset:0}
+  .seal.fail .tick{display:none}
+  .seal .cross{stroke:var(--fail); stroke-width:8; fill:none; stroke-linecap:round; opacity:0; transition:opacity .4s ease .6s}
+  .seal.fail .cross{opacity:1}
+  .seal .core{fill:var(--sunken); stroke:var(--hair); stroke-width:1}
+  .seal-state{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; text-align:center}
+  .seal-state .verb{font-family:var(--mono); font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    font-size:clamp(15px,2.4vw,19px); color:var(--jade)}
+  .seal.pending .seal-state .verb{color:var(--muted)}
+  .seal.fail .seal-state .verb{color:var(--fail)}
+  .seal-state small{font-family:var(--mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--faint)}
+  .scan{position:absolute; left:8%; right:8%; height:2px; top:12%;
+    background:linear-gradient(90deg,transparent,var(--jade),transparent); opacity:0; border-radius:2px}
+  .seal.scanning .scan{opacity:.85; animation:scan 1.05s cubic-bezier(.5,0,.5,1) infinite}
+  @keyframes scan{0%{top:12%}100%{top:86%}}
+  .verdict-pill{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    display:inline-flex; align-items:center; gap:8px; padding:6px 13px; border-radius:99px;
+    border:1px solid var(--jade-dim); color:var(--jade); background:var(--jade-glow)}
+  .verdict-pill.pending{color:var(--muted); border-color:var(--hair); background:transparent}
+  .verdict-pill.fail{color:var(--fail); border-color:var(--fail); background:var(--fail-glow)}
+  .verdict-pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+  .hero-body{position:relative; z-index:1; min-width:0}
+  .hero h1{font-family:var(--sans); font-weight:680; letter-spacing:-.02em; text-wrap:balance;
+    font-size:clamp(26px,4.4vw,40px); line-height:1.08; margin:.35em 0 .3em}
+  .hero h1 em{font-style:normal; color:var(--jade)}
+  .hero .lede{color:var(--muted); font-size:clamp(14px,1.7vw,16px); max-width:52ch; margin:0 0 20px}
+  .checks{display:flex; flex-direction:column; gap:1px; background:var(--hair); border:1px solid var(--hair); border-radius:var(--r-sm); overflow:hidden}
+  .check{display:grid; grid-template-columns:26px 1fr auto; gap:12px; align-items:center; background:var(--surface); padding:12px 15px}
+  .check .box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--hair-strong); display:grid;place-items:center; position:relative; transition:border-color .3s}
+  .check .box svg{width:12px;height:12px; stroke:var(--jade); stroke-width:3.2; fill:none; stroke-linecap:round; stroke-linejoin:round;
+    stroke-dasharray:20; stroke-dashoffset:20; transition:stroke-dashoffset .34s ease}
+  .check .spin{position:absolute; inset:-1.5px; border-radius:6px; border:1.5px solid transparent; border-top-color:var(--muted); opacity:0; animation:spin .7s linear infinite}
+  .check .cname{font-family:var(--mono); font-size:12.5px; color:var(--ink); letter-spacing:.01em}
+  .check .cdesc{font-family:var(--sans); font-size:12.5px; color:var(--muted); grid-column:2; margin-top:1px}
+  .check .cstat{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--faint)}
+  .check[data-state="scanning"] .spin{opacity:1}
+  .check[data-state="scanning"] .box{border-color:var(--muted)}
+  .check[data-state="pass"] .box{border-color:var(--jade)}
+  .check[data-state="pass"] .box svg{stroke-dashoffset:0}
+  .check[data-state="pass"] .cstat{color:var(--jade)}
+  .check[data-state="fail"] .box{border-color:var(--fail)}
+  .check[data-state="fail"] .box svg{stroke:var(--fail); stroke-dashoffset:0; d:path("M7 7 L17 17 M17 7 L7 17")}
+  .check[data-state="fail"] .cstat{color:var(--fail)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .actions{display:flex; gap:12px; align-items:center; margin-top:20px; flex-wrap:wrap}
+  .btn{font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; padding:11px 18px; border-radius:9px;
+    cursor:pointer; border:1px solid var(--jade-dim); color:var(--btn-fg); background:var(--jade); font-weight:600}
+  .btn:hover{filter:brightness(1.08)}
+  .btn:focus-visible{outline:2px solid var(--jade); outline-offset:3px}
+  .btn[disabled]{opacity:.55; cursor:default}
+  .runmeta{font-family:var(--mono); font-size:11px; color:var(--faint); letter-spacing:.04em}
+  .runmeta b{color:var(--muted); font-weight:400}
+
+  .section-head{display:flex;align-items:baseline;gap:14px;margin:clamp(34px,6vw,54px) 2px 16px}
+  .section-head h2{font-family:var(--sans); font-weight:640; letter-spacing:-.01em; font-size:19px; margin:0}
+  .section-head .rule{flex:1;height:1px;background:var(--hair)}
+  .meaning{border:1px solid var(--hair); border-radius:var(--r); background:var(--raised); padding:clamp(18px,3vw,26px);
+    display:grid; grid-template-columns:repeat(3,1fr); gap:22px}
+  @media(max-width:720px){.meaning{grid-template-columns:1fr; gap:16px}}
+  .meaning .m h4{font-family:var(--mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--jade); margin:0 0 6px}
+  .meaning .m p{margin:0; font-size:13.5px; color:var(--muted); max-width:34ch}
+
+  .grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}}
+  .card{border:1px solid var(--hair); border-radius:var(--r); background:var(--surface); padding:18px 18px 16px; min-width:0}
+  .card.span2{grid-column:1/-1}
+  .card .chead{display:flex; align-items:center; gap:9px; margin-bottom:14px}
+  .card .chead .k{width:6px;height:6px;border-radius:50%}
+  .k.jade{background:var(--jade)} .k.brass{background:var(--brass)}
+  .card .chead h3{font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin:0; color:var(--ink); font-weight:600}
+  .row{display:flex; justify-content:space-between; gap:14px; padding:8px 0; border-top:1px solid var(--hair); align-items:baseline}
+  .row:first-of-type{border-top:none}
+  .row .rk{font-family:var(--sans); font-size:12.5px; color:var(--muted); flex:0 0 auto}
+  .row .rv{font-family:var(--mono); font-size:12.5px; color:var(--ink); text-align:right; font-variant-numeric:tabular-nums; min-width:0; overflow-wrap:anywhere}
+  .row .rv.brass{color:var(--brass-soft)}
+  .hash{font-family:var(--mono); font-size:11.5px; color:var(--muted); background:var(--sunken); border:1px solid var(--hair); border-radius:7px;
+    padding:8px 10px; overflow-x:auto; white-space:nowrap; letter-spacing:.02em; scrollbar-width:thin; cursor:copy; position:relative}
+  .hash:hover{color:var(--ink); border-color:var(--hair-strong)}
+  .hash::-webkit-scrollbar{height:6px}
+  .hash::-webkit-scrollbar-thumb{background:var(--hair-strong); border-radius:6px}
+  .hashwrap{display:flex; flex-direction:column; gap:5px; margin-top:6px}
+  .hashwrap .label{margin-bottom:1px}
+  .copied{position:absolute; right:8px; top:50%; transform:translateY(-50%); font-size:10px; letter-spacing:.1em; color:var(--jade);
+    background:var(--surface); padding:2px 7px; border-radius:5px; opacity:0; transition:opacity .2s; pointer-events:none}
+  .hash.flash .copied{opacity:1}
+  .term{background:var(--sunken); border:1px solid var(--hair); border-radius:var(--r-sm); font-family:var(--mono); font-size:12.5px; overflow:hidden}
+  .term .bar{display:flex; gap:6px; padding:9px 12px; border-bottom:1px solid var(--hair); align-items:center}
+  .term .bar i{width:9px;height:9px;border-radius:50%;background:var(--hair-strong);display:inline-block}
+  .term .bar span{margin-left:8px; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint)}
+  .term .body{padding:13px 15px; display:flex; flex-direction:column; gap:11px; overflow:auto; max-height:340px}
+  .term .ln{white-space:pre-wrap; word-break:break-word; line-height:1.5}
+  .term .pfx{color:var(--brass); user-select:none} .term .pfx.out{color:var(--jade)}
+  .term .prompt-text{color:var(--ink)} .term .resp-text{color:var(--muted)}
+  .toolcall{margin-top:14px; border:1px solid var(--hair); border-radius:var(--r-sm); background:var(--surface); overflow:hidden}
+  .toolcall .tc-head{display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--hair)}
+  .tc-head .badge{font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.06em; color:var(--brass);
+    border:1px solid var(--brass-dim); padding:3px 9px; border-radius:6px}
+  .tc-head .free{margin-left:auto; font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint)}
+  .tc-body{padding:12px 14px; display:flex; flex-direction:column; gap:7px}
+  footer{margin-top:38px; padding-top:20px; border-top:1px solid var(--hair); display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    font-family:var(--mono); font-size:11px; color:var(--faint); letter-spacing:.03em}
+  .banner{font-family:var(--mono); font-size:11px; letter-spacing:.04em; color:var(--brass-soft); background:var(--fail-glow,transparent);
+    border:1px solid var(--hair); border-radius:8px; padding:9px 13px; margin-bottom:14px; display:none}
+  .banner.show{display:block}
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important; transition:none!important}
+    .seal .ring-lit{stroke-dashoffset:0} .seal .tick{stroke-dashoffset:0}
+  }
+</style>
+
+<div class="page"><div class="wrap">
+  <header class="mast">
+    <div class="brand">
+      <svg class="glyph" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M16 2 L28 9 V23 L16 30 L4 23 V9 Z" fill="none" stroke="var(--jade)" stroke-width="1.6"/>
+        <path d="M11 16.5 L14.5 20 L21.5 12" fill="none" stroke="var(--jade)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <b>konareef<span>/verify</span></b>
+    </div>
+    <button class="theme-toggle" id="themeBtn" aria-label="Toggle colour theme">◐ theme</button>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <section class="hero" aria-label="Verification verdict">
+    <div class="seal-col">
+      <div class="seal pending" id="seal" role="img" aria-label="Verification seal">
+        <svg viewBox="0 0 200 200">
+          <circle class="core" cx="100" cy="100" r="88"/>
+          <circle class="ring" cx="100" cy="100" r="88"/>
+          <circle class="ring-lit" cx="100" cy="100" r="88" style="--circ:552" transform="rotate(-90 100 100)"/>
+          <path class="tick" style="--tick:70" d="M68 102 L90 124 L134 78"/>
+          <path class="cross" d="M74 74 L126 126 M126 74 L74 126"/>
+        </svg>
+        <div class="scan"></div>
+        <div class="seal-state"><span class="verb" id="sealVerb">Ready</span><small id="sealSub">Type-C · policy C</small></div>
+      </div>
+      <div class="verdict-pill pending" id="verdictPill"><span class="dot"></span><span id="verdictText">Awaiting verification</span></div>
+    </div>
+    <div class="hero-body">
+      <p class="eyebrow">Zero-knowledge proof of faithful execution</p>
+      <h1>This AI agent did <em>exactly</em> what it claimed — and here is the proof.</h1>
+      <p class="lede">A live <b>voice-forge</b> pod ran, called a tool, and produced a Spartan zero-knowledge proof over its own
+        execution trace. This verifier re-checks it from the raw bundle — trusting no operator, no server, only mathematics.</p>
+      <div class="checks" id="checks"></div>
+      <div class="actions">
+        <button class="btn" id="runBtn">▶ Verify proof</button>
+        <span class="runmeta" id="runMeta"></span>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-head"><h2>Why it's trustworthy</h2><div class="rule"></div></div>
+  <div class="meaning">
+    <div class="m"><h4>No trusted operator</h4><p>The verifier re-derives every commitment from the disclosed bytes. reef-core only stores the artifact — it cannot forge one.</p></div>
+    <div class="m"><h4>Bound, not asserted</h4><p>The tool-log, model, budget and publisher key are inputs to the proof. Change any byte and the SNARK fails.</p></div>
+    <div class="m"><h4>Verify anywhere</h4><p>An 18&nbsp;KB bundle + a public verifier. No call home, no privileged access — the proof stands on its own.</p></div>
+  </div>
+
+  <div class="section-head"><h2>The evidence</h2><div class="rule"></div></div>
+  <div class="grid" id="evidence"></div>
+
+  <footer>
+    <span id="footSrc">Real proof · reefcore-demo → PS-1 → konareef verify · policy&nbsp;C</span>
+    <span>verdict rendered from actual verifier output · not a mockup</span>
+  </footer>
+</div></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- offline fallback: the real proof db41538f (used when no /api server) ----
+  var SAMPLE = {
+    "ok": true,
+    "verdict": {
+      "proof_valid": true,
+      "disclosure_valid": true,
+      "chain_policy_mode": "full_hash_chain",
+      "chain_policy_valid": true,
+      "chain_truncated": false,
+      "chain_head_anchored": false,
+      "chain_head_anchor": {"status": "absent"},
+      "commitments_valid": true,
+      "signature_valid": true,
+      "publisher_identity_status": "bound"
+    },
+    "divergences": [],
+    "meta": {
+      "proof_hash": "c9b46ab2f8a87b966e4d2e42783ffb7e83de297b46733f958dbb0c5676b625ca",
+      "version": "konareef-bundle/v2",
+      "source_label": "sample (offline)"
+    },
+    "pod": {
+      "name": "voice-forge",
+      "version": "0.1.4",
+      "circuit": "konareef-pod-step-v1",
+      "disclosure": "C",
+      "pod_hash": "460acbace4f92bf96b932be24b6fabf4723471a5e19f9ab1573c263d65556f20"
+    },
+    "publisher": {
+      "id": "bob",
+      "pubkey": "0214ead9ee11d32623a312b230bb691c9437a469184fc2b121de4b1043350f4f8b",
+      "signature": "3045022100b869d62b561da44630e0a0492d8fd80cd865af05f1dab8cb7be0f76d1dc0a84802201ff7c28562c86a5d2547174c3d69f23e49c47f60df739460b9015a939fdc7eeb",
+      "curve": "secp256k1"
+    },
+    "execution": {
+      "p": "# voice-forge \u2014 minimal TTS directive\n\nYou are the execution agent for the `voice-forge` reefpod. Produce speech\naudio with the ElevenLabs API in as few tool calls as possible.\n\nThe environment already has these variables set (never print or store the\nAPI key): `ELEVENLABS_API_KEY`, `REEF_INPUT_SPEAK_TEXT`, `REEF_INPUT_VOICE_ID`.\n\nRun **EXACTLY ONE `bash` tool call** \u2014 the script below, verbatim \u2014 then stop\nand report that you are done. Do NOT run any other command, and do NOT use the\n`write`/`read`/`edit` tools (every tool call must be `bash`, the only declared\ntool). The script is self-contained and reads the inputs from the environment.\n\n```sh\nset -eu\nmkdir -p output\ncurl -sS -f -X POST \\\n  \"https://api.elevenlabs.io/v1/text-to-speech/${REEF_INPUT_VOICE_ID}?output_format=mp3_44100_128\" \\\n  -H \"xi-api-key: ${ELEVENLABS_API_KEY}\" \\\n  -H \"Content-Type: application/json\" \\\n  -d \"$(jq -n --arg t \"$REEF_INPUT_SPEAK_TEXT\" '{text:$t, model_id:\"eleven_multilingual_v2\"}')\" \\\n  -o output/speech.mp3\nCHARS=$(printf %s \"$REEF_INPUT_SPEAK_TEXT\" | wc -c)\nSIZE=$(wc -c < output/speech.mp3)\nprintf 'mode: tts\\nvoice_id: %s\\nchars_consumed: %s\\nbudget_remaining: %s\\nmp3_bytes: %s\\n' \\\n  \"$REEF_INPUT_VOICE_ID\" \"$CHARS\" \"$((5000 - CHARS))\" \"$SIZE\" > output/report.md\n```\n\nAfter it succeeds, report: \"done \u2014 synthesized output/speech.mp3 (<SIZE> bytes)\".\nIf the curl fails, read the error body, write it to output/report.md (never the\nkey), and stop.\n",
+      "r": "opencode run complete",
+      "tools": [
+        {
+          "name": "bash",
+          "id_digest": "37d2b12d5d9abc2a364ef9448767ee03938e383c0284193477dc7618f4b7c6c2",
+          "args_hash": "e0bd4a5ae5aef0e1d886ea51d7f6c275d202b6a6bcb0e181444794f406d8cde8",
+          "result_hash": "efefc15c24ee8645a3f5f6958389db729c1577eb6b32aeac4caab2a86d90daa3",
+          "ts_us": 1783597973003113,
+          "sats": 0
+        }
+      ]
+    },
+    "proof": {
+      "scheme": "Spartan SNARK",
+      "snark_bytes": 12456,
+      "z0_bytes": 736,
+      "manifest_bytes": 1933,
+      "vkey_hash": "0166012bb782673a0892d010b3716191eeb45372ee4854c799a5df80436426ce"
+    },
+    "commitments": {
+      "t_root": "f1cee0d21fdeb34ebce34e4c4b3085924938e184187ab2719e027e0d7e17222b",
+      "r_in": "c5a959b0cf2043a38c6c75e8f05b0f809bbfdc2ce2e2bbf1f7821d7d1de9d727",
+      "r_out": "1491dfa5fff8acfc8fa0cc323d2b7a6d9ee71dc244f5282ad4f882b09694452a"
+    },
+    "chain": [
+      {
+        "type": "structured_bundle",
+        "hash": "e3e9e6e7fb14f3ce2e8aeb53c5fd074bdffddba192f1c3277803c6b09cffbf7e",
+        "ts": "2026-07-09T11:52:43.622542Z"
+      },
+      {
+        "type": "openbrain_snapshot",
+        "hash": "fea0faf6ec0452490a7afa07ab676300ec4f44eabf2fdc57b87e974c4c1996e5",
+        "ts": "2026-07-09T11:52:43.659008Z"
+      },
+      {
+        "type": "custody",
+        "hash": "c9b46ab2f8a87b966e4d2e42783ffb7e83de297b46733f958dbb0c5676b625ca",
+        "ts": "2026-07-09T11:52:54.344955Z"
+      }
+    ]
+  };
+
+  // The six checks: verifier verdict field → plain-English gloss.
+  var CHECKS = [
+    {key:"proof_valid",        name:"proof_valid",        desc:"The zero-knowledge proof re-verifies from scratch — mathematically sound."},
+    {key:"commitments_valid",  name:"commitments_valid",  desc:"The disclosed tool-log is provably the one that was executed (Poseidon t_root)."},
+    {key:"disclosure_valid",   name:"disclosure_valid",   desc:"Every disclosed field re-hashes to the proof — nothing swapped after the fact."},
+    {key:"chain_policy_valid", name:"chain_policy_valid", desc:"The custody chain is self-consistent under the rule for its disclosure: full hash chain (Type C) or adjacency (Type D). This alone is not a tamper-evidence check; the chain head is tamper-evident only when chain_head_anchored is true (an attested on-chain anchor)."},
+    {key:"signature_valid",    name:"signature_valid",    desc:"The publisher's secp256k1 signature binds this exact pod."},
+    {key:"publisher_identity", name:"publisher_identity", desc:"Publisher identity resolves and is cryptographically bound."}
+  ];
+  function checkPasses(v,key){
+    if(!v) return false;
+    if(key==="publisher_identity") return v.publisher_identity_status==="bound";
+    return v[key]===true;
+  }
+
+  var $=function(id){return document.getElementById(id);};
+  var esc=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});};
+  var short=function(h,n){h=h||""; n=n||16; return h.length>n? h.slice(0,n)+"…" : h;};
+  var reduce=window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+  var seal=$("seal"), sealVerb=$("sealVerb"), sealSub=$("sealSub"), pill=$("verdictPill"),
+      pillText=$("verdictText"), runBtn=$("runBtn"), runMeta=$("runMeta"), checksEl=$("checks"),
+      evEl=$("evidence"), banner=$("banner"), footSrc=$("footSrc");
+  var running=false, current=SAMPLE;
+
+  // ---- render the six check rows ----
+  function buildChecks(){
+    checksEl.innerHTML="";
+    CHECKS.forEach(function(c,i){
+      var el=document.createElement("div");
+      el.className="check"; el.dataset.state="idle"; el.dataset.i=i;
+      el.innerHTML='<div class="box"><div class="spin"></div><svg viewBox="0 0 24 24"><path d="M5 12.5 L10 17.5 L19 7"/></svg></div>'+
+        '<div class="cname">'+c.name+'</div><div class="cstat" data-stat></div><div class="cdesc">'+c.desc+'</div>';
+      checksEl.appendChild(el);
+    });
+  }
+  var rows=function(){return Array.prototype.slice.call(checksEl.children);};
+
+  // ---- render the evidence dossier from data ----
+  function hashRow(label,val){
+    if(!val) return "";
+    return '<span class="label">'+esc(label)+'</span><div class="hash" data-copy="'+esc(val)+'">'+esc(val)+'<span class="copied">copied</span></div>';
+  }
+  function row(k,v,brass){ return '<div class="row"><span class="rk">'+esc(k)+'</span><span class="rv'+(brass?" brass":"")+'">'+esc(v)+'</span></div>'; }
+  function card(kcolor,title,inner,span){ return '<div class="card'+(span?" span2":"")+'"><div class="chead"><span class="k '+kcolor+'"></span><h3>'+esc(title)+'</h3></div>'+inner+'</div>'; }
+
+  function renderEvidence(d){
+    var pod=d.pod||{}, pub=d.publisher||{}, ex=d.execution||{}, pr=d.proof||{}, cm=d.commitments||{}, ch=d.chain||[];
+    var out="";
+    out+=card("brass","Pod identity",
+      row("Pod",pod.name||"—",true)+row("Version",pod.version||"—")+row("Circuit",pod.circuit||"—")+
+      row("Disclosure policy",(pod.disclosure||"—")+" · full tool-log")+
+      '<div class="hashwrap">'+hashRow("pod_hash · sha-256",pod.pod_hash)+'</div>');
+    out+=card("jade","Publisher binding",
+      row("Publisher",pub.id||"—",true)+row("Identity",(d.verdict&&d.verdict.publisher_identity_status)||"—")+row("Curve",pub.curve||"secp256k1")+
+      '<div class="hashwrap">'+hashRow("publisher pubkey · compressed",pub.pubkey)+hashRow("ecdsa signature over h_manifest · der",pub.signature)+'</div>');
+
+    var tools=(ex.tools||[]).map(function(t){
+      var sats=(t.sats>0)?(t.sats+" sats"):"0 sats · local";
+      return '<div class="toolcall"><div class="tc-head"><span class="badge">tool · '+esc(t.name||"tool")+'</span>'+
+        '<span class="label">committed as sha-256(tool_id)</span><span class="free">'+esc(sats)+'</span></div>'+
+        '<div class="tc-body"><div class="hashwrap">'+hashRow("tool_id digest",t.id_digest)+hashRow("args_hash",t.args_hash)+hashRow("result_hash",t.result_hash)+'</div></div></div>';
+    }).join("");
+    out+=card("brass","Execution trace",
+      '<div class="term"><div class="bar"><i></i><i></i><i></i><span>'+esc(pod.name||"pod")+' · disclosure '+esc(pod.disclosure||"C")+'</span></div>'+
+      '<div class="body"><div class="ln"><span class="pfx">P ▸ </span><span class="prompt-text">'+esc(ex.p||"")+'</span></div>'+
+      '<div class="ln"><span class="pfx out">R ◂ </span><span class="resp-text">'+esc(ex.r||"")+'</span></div></div></div>'+tools, true);
+
+    out+=card("jade","The proof",
+      row("Scheme",pr.scheme||"Spartan SNARK")+row("Proof size",fmtB(pr.snark_bytes))+
+      row("Fold state z₀",fmtB(pr.z0_bytes)+" · 23 lanes")+row("Signed manifest",fmtB(pr.manifest_bytes))+
+      '<div class="hashwrap">'+hashRow("vkey_hash",pr.vkey_hash)+'</div>');
+    out+=card("jade","Public commitments",
+      '<div class="hashwrap">'+hashRow("t_root · poseidon over the tool-log",cm.t_root)+
+      hashRow("r_in · step input root",cm.r_in)+hashRow("r_out · step output root",cm.r_out)+'</div>');
+
+    var links=ch.map(function(c,i){
+      var head=(i===ch.length-1);
+      return row(c.type, short(c.hash,12)+" · "+fmtTs(c.ts), head);
+    }).join("");
+    // reef-core#76: the chain head reads "anchored" only when the anchor
+    // verified; every other status says why not. A chain that starts
+    // mid-chain is reported as truncated (R2b D2).
+    var vd=d.verdict||{};
+    links+=row("Chain head", anchorText(vd));
+    if(vd.chain_truncated) links+=row("Chain start","truncated chain · does not reach genesis");
+    out+=card("brass","Custody chain · "+ch.length+" links"+(vd.chain_truncated?" · truncated":""), links, true);
+
+    evEl.innerHTML=out;
+  }
+  function anchorText(vd){
+    var a=vd.chain_head_anchor||{};
+    var floor=a.difficulty_floor_overridden ? " · lowered difficulty floor" : "";
+    if(vd.chain_head_anchored && a.status==="verified"){
+      return "anchored at block "+a.block_height+" ("+a.confirmations+" conf) · node "+short(a.attributed_to||"",12)+floor;
+    }
+    switch(a.status){
+      case "verified": return "anchor checks out, but the bundle failed"+floor;
+      case "headers_unavailable": return "anchor not checked · no block headers";
+      case "insufficient_depth": return "anchor unconfirmed ("+(a.confirmations||0)+" conf)";
+      case "unattributed": return "anchor not from a trusted node";
+      case "invalid": return "anchor invalid";
+      default: return "not anchored outside the bundle";
+    }
+  }
+  function fmtB(n){ return (typeof n==="number") ? n.toLocaleString()+" B" : "—"; }
+  function fmtTs(ts){ if(!ts) return ""; var m=/T(\d\d:\d\d:\d\d)/.exec(ts); return m?m[1]+"Z":ts; }
+
+  // ---- reveal sequence driven by the real verdict ----
+  function paintFinal(d){
+    var ok=!!d.ok;
+    rows().forEach(function(r){ r.dataset.state = checkPasses(d.verdict,CHECKS[+r.dataset.i].key)?"pass":"fail";
+      r.querySelector("[data-stat]").textContent = r.dataset.state==="pass"?"pass":"fail"; });
+    seal.className = ok?"seal done":"seal fail";
+    sealVerb.textContent = ok?"Proven":"Not proven";
+    var passed=rows().filter(function(r){return r.dataset.state==="pass";}).length;
+    sealSub.textContent = passed+" / "+rows().length+" checks · ok="+ok;
+    pill.className = ok?"verdict-pill":"verdict-pill fail";
+    pillText.textContent = ok?"Faithful execution proven":"Verification failed";
+    if(!ok && d.divergences && d.divergences.length){ showBanner("⚠ "+d.divergences[0]); }
+  }
+  function resetChecks(){ rows().forEach(function(r){ r.dataset.state="idle"; r.querySelector("[data-stat]").textContent=""; });
+    seal.className="seal pending"; sealVerb.textContent="Verifying"; sealSub.textContent="Type-C · policy C";
+    pill.className="verdict-pill pending"; pillText.textContent="Verifying…"; }
+
+  function reveal(d){
+    if(reduce){ paintFinal(d); return; }
+    seal.classList.add("scanning"); var i=0;
+    (function step(){
+      if(i>0){ var pr=rows()[i-1], k=CHECKS[i-1].key, ok=checkPasses(d.verdict,k);
+        pr.dataset.state=ok?"pass":"fail"; pr.querySelector("[data-stat]").textContent=ok?"pass":"fail"; }
+      if(i<rows().length){ rows()[i].dataset.state="scanning"; i++; setTimeout(step,340); }
+      else { seal.classList.remove("scanning"); paintFinal(d); running=false; runBtn.disabled=false; runBtn.textContent="▶ Re-verify proof"; }
+    })();
+  }
+
+  function showBanner(msg){ banner.textContent=msg; banner.classList.add("show"); }
+  function hideBanner(){ banner.classList.remove("show"); }
+
+  function setMeta(d,live){
+    var h=(d.meta&&d.meta.proof_hash)||""; var src=(d.meta&&d.meta.source_label)||"";
+    runMeta.innerHTML="proof <b>"+esc(short(h,8).replace("…",""))+"</b> · "+esc(d.meta&&d.meta.version||"konareef-bundle/v2");
+    footSrc.textContent=(live?"Live verify · ":"Sample · ")+(src||"offline")+" → konareef verify · policy C";
+  }
+
+  // renderFailure paints an explicit red / not-proven state for a LIVE verify
+  // failure (a non-2xx {error} from /api/verdict). It deliberately does NOT
+  // fall back to the captured sample: showing the sample's green checks for a
+  // proof whose live verification failed would make a failed demo look proven.
+  function renderFailure(msg){
+    rows().forEach(function(r){ r.dataset.state="fail"; r.querySelector("[data-stat]").textContent="fail"; });
+    seal.className="seal fail"; sealVerb.textContent="Not proven";
+    sealSub.textContent="live verify failed";
+    pill.className="verdict-pill fail"; pillText.textContent="Verification failed";
+    footSrc.textContent="Live verify · failed → konareef verify · policy C";
+    evEl.innerHTML='<div class="row"><span class="rk">live verify error</span><span class="rv">'+esc(msg)+'</span></div>';
+    showBanner("⚠ live verify failed: "+esc(msg)+" — not proven");
+  }
+
+  // ---- run: fetch live verdict if a server is present, else use the sample ----
+  function qs(){ try{ return window.location.search||""; }catch(e){ return ""; } }
+  function run(){
+    if(running) return; running=true; runBtn.disabled=true;
+    hideBanner(); resetChecks();
+    var url="/api/verdict"+qs();
+    fetch(url,{headers:{accept:"application/json"}}).then(function(res){
+      // Read the body as TEXT first: a static host (e.g. the shareable Artifact,
+      // which has no /api/verdict backend) answers with a non-JSON 404 like
+      // "not found", and calling res.json() on that throws a parse error.
+      return res.text().then(function(body){ return {ok:res.ok, body:body}; });
+    }).then(function(r){
+      var data;
+      try { data = JSON.parse(r.body); } catch(e){ throw {offline:true}; }   // non-JSON → offline
+      if(!r.ok){ throw {serverError: (data && data.error) ? data.error : "verify error"}; }
+      current=data; renderEvidence(data); setMeta(data,true); reveal(data);
+    }).catch(function(err){
+      if(err && err.offline){
+        // Genuine offline / static host (e.g. the shareable Artifact, which has
+        // no /api/verdict backend): a non-JSON response. Show the captured
+        // proof as a labelled sample — this is the ONLY path that reveals it.
+        current=SAMPLE; renderEvidence(SAMPLE); setMeta(SAMPLE,false); reveal(SAMPLE);
+      } else {
+        // A LIVE server error (non-2xx {error}): reef-core fetch/decode or the
+        // verifier failed. Do NOT reveal the green captured proof — render an
+        // explicit red / not-proven state tied to the error.
+        current=null;
+        renderFailure((err && err.serverError) || "live verify error");
+        running=false; runBtn.disabled=false; runBtn.textContent="▶ Re-verify proof";
+      }
+    });
+  }
+
+  // ---- wire up ----
+  buildChecks(); renderEvidence(SAMPLE); setMeta(SAMPLE,false);
+  runBtn.addEventListener("click", run);
+  document.addEventListener("click", function(e){
+    var h=e.target.closest && e.target.closest(".hash"); if(!h||!h.dataset.copy) return;
+    var done=function(){ h.classList.add("flash"); setTimeout(function(){h.classList.remove("flash");},1100); };
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(h.dataset.copy).then(done,done); } else { done(); }
+  });
+  var root=document.documentElement;
+  $("themeBtn").addEventListener("click", function(){
+    var cur=root.getAttribute("data-theme");
+    root.setAttribute("data-theme", cur==="dark"?"light":cur==="light"?"dark":(window.matchMedia("(prefers-color-scheme:dark)").matches?"light":"dark"));
+  });
+  if(reduce){ paintFinal(SAMPLE); } else { setTimeout(run,420); }
+})();
+</script>
