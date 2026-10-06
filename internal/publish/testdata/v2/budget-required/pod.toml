@@ -1,0 +1,8 @@
+pod_spec_version = "0.1"
+
+[pod]
+name = "budget-required"
+
+[model]
+provider = "openai"
+name = "gpt-4o"

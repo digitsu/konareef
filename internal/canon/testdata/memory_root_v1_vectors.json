@@ -1,0 +1,158 @@
+{
+  "title": "konareef-rinit/v1 memory-root vectors (MEM-01, paygate-zk#10)",
+  "status": "normative for the accepted MEM-00 decisions D1-A and D2-A; see docs/prds/konareef-memory-root-v1-proof-path.md",
+  "spec": "konareef docs/reference/konareef-memory-root-v1-spec.md (merged); PRD 1 \u00a75.5; PRD 4 \u00a73.2",
+  "consumers": [
+    "paygate-zk crates/konareef-circuit/tests/mem01_memory_root.rs",
+    "paygate-zk crates/paygate-zk-prove/src/commit.rs (unit tests)",
+    "reef-core MEM-02 reef-core#54 (admission / R-M17 parity)",
+    "konareef MEM-03 konareef#26 (publish E20, [_commit] r_init_scheme, R-M17 classifier)"
+  ],
+  "byte_order": "every 64-hex value is the 32-byte little-endian encoding of a Pallas Fq element (fq_to_le_bytes)",
+  "field_modulus_p_hex_be": "40000000000000000000000000000000224698fc0994a8dd8c46eb2100000001",
+  "encoding": [
+    {
+      "name": "zero",
+      "le_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+      "canonical": true
+    },
+    {
+      "name": "one",
+      "le_hex": "0100000000000000000000000000000000000000000000000000000000000000",
+      "canonical": true
+    },
+    {
+      "name": "p_minus_1",
+      "le_hex": "0000000021eb468cdda89409fc98462200000000000000000000000000000040",
+      "canonical": true
+    },
+    {
+      "name": "p",
+      "le_hex": "0100000021eb468cdda89409fc98462200000000000000000000000000000040",
+      "canonical": false
+    },
+    {
+      "name": "p_plus_1",
+      "le_hex": "0200000021eb468cdda89409fc98462200000000000000000000000000000040",
+      "canonical": false
+    },
+    {
+      "name": "all_ones_2_256_minus_1",
+      "le_hex": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "canonical": false
+    },
+    {
+      "name": "legacy_sha_sparse_empty_root",
+      "le_hex": "0f2106fa5d65c0bed55f9298f38695f25d40110494f085cf8a1fcf650e8f7790",
+      "canonical": false
+    },
+    {
+      "name": "e20",
+      "le_hex": "c5a959b0cf2043a38c6c75e8f05b0f809bbfdc2ce2e2bbf1f7821d7d1de9d727",
+      "canonical": true
+    }
+  ],
+  "memory_free": {
+    "r_init_v1": "c5a959b0cf2043a38c6c75e8f05b0f809bbfdc2ce2e2bbf1f7821d7d1de9d727",
+    "r_init_legacy_zero": "0000000000000000000000000000000000000000000000000000000000000000",
+    "prd4_vector": "mem-empty-sentinel"
+  },
+  "fields_root": [
+    {
+      "name": "empty",
+      "models": [],
+      "tools": [],
+      "c_max": 0,
+      "fields_root_v1": "3003b812d8dba16d640505f0bacf48386b98d25a69b267a6d3d90ac209c2fb3e",
+      "fields_root_legacy_zero": "25e80065232bae5c6accde72a53d4493cbe472d6e63cf851021fa4d25084270e"
+    },
+    {
+      "name": "one_each",
+      "models": [
+        "openai/gpt-4o"
+      ],
+      "tools": [
+        "bash"
+      ],
+      "c_max": 1000,
+      "fields_root_v1": "ff6b2c4af94d1a49089a44403be698b992f7fcca66604ca1f0c6cf3407abb73c",
+      "fields_root_legacy_zero": "fad04d34d3c97bf485d0bd8b51aa2567e8eec855434b65ca101c6c647ea82603"
+    }
+  ],
+  "commit_classification": {
+    "description": "[_commit] trailers over the one_each pod. 'class' is the R-M17 classification a verifier or admission (MEM-02) computes with no salt; 'ps1' is the PS-1 preflight outcome (accept, or the ERR_WITNESS_INVALID reason). A memory-bearing root is not classifiable by R-M17; only the salt holder can check it (spec section 6.2), and PS-1 has no memory-witness lane yet.",
+    "cases": [
+      {
+        "models": [
+          "openai/gpt-4o"
+        ],
+        "tools": [
+          "bash"
+        ],
+        "c_max": 1000,
+        "name": "v1_no_marker",
+        "committed_fields_root": "ff6b2c4af94d1a49089a44403be698b992f7fcca66604ca1f0c6cf3407abb73c",
+        "r_init_scheme": null,
+        "class": "memory_free_rinit_v1",
+        "ps1": "accept"
+      },
+      {
+        "models": [
+          "openai/gpt-4o"
+        ],
+        "tools": [
+          "bash"
+        ],
+        "c_max": 1000,
+        "name": "v1_marker",
+        "committed_fields_root": "ff6b2c4af94d1a49089a44403be698b992f7fcca66604ca1f0c6cf3407abb73c",
+        "r_init_scheme": "konareef-rinit/v1",
+        "class": "memory_free_rinit_v1",
+        "ps1": "accept"
+      },
+      {
+        "models": [
+          "openai/gpt-4o"
+        ],
+        "tools": [
+          "bash"
+        ],
+        "c_max": 1000,
+        "name": "legacy_zero",
+        "committed_fields_root": "fad04d34d3c97bf485d0bd8b51aa2567e8eec855434b65ca101c6c647ea82603",
+        "r_init_scheme": null,
+        "class": "memory_free_legacy_zero",
+        "ps1": "rinit_legacy_zero"
+      },
+      {
+        "models": [
+          "openai/gpt-4o"
+        ],
+        "tools": [
+          "bash"
+        ],
+        "c_max": 1000,
+        "name": "unknown_scheme",
+        "committed_fields_root": "ff6b2c4af94d1a49089a44403be698b992f7fcca66604ca1f0c6cf3407abb73c",
+        "r_init_scheme": "konareef-rinit/v2",
+        "class": "refused_scheme_unknown",
+        "ps1": "rinit_scheme_unknown"
+      },
+      {
+        "models": [
+          "openai/gpt-4o"
+        ],
+        "tools": [
+          "bash"
+        ],
+        "c_max": 1000,
+        "name": "populated_prd4_multi_cell",
+        "committed_fields_root": "3bbac3404096bab38505fa7bf79ed3538aeef7334fced6a300fb91d75534ed10",
+        "r_init_scheme": "konareef-rinit/v1",
+        "r_init": "86ec05dda6bd85f65f477160a7cddee1bb0f7e4b1775d09f1b9c88009ee2871f",
+        "class": "not_memory_free",
+        "ps1": "fields_root_mismatch"
+      }
+    ]
+  }
+}

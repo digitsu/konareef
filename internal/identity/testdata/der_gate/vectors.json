@@ -1,0 +1,27 @@
+{
+  "digest_hex": "bd1037ca7030ee3c6382c0f3ac2f25b154b01a9d7ec1959d7a36b29b1d48c3c3",
+  "digest_preimage_utf8": "konareef-p1-4-vector-message",
+  "pubkey_compressed_hex": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+  "vectors": [
+    {
+      "expect": "accept",
+      "id": "der-gate-canonical-accept",
+      "sig_hex": "304402204f98832e4c252aa7ca642b94d442f1ed0b5f72849ef6da95b6c95d16ffa21af802200bdc82851a95dacfbcc3a99fd2d2716721b87416c97a7cf41a99747ad4bc952e"
+    },
+    {
+      "expect": "der_gate_reject",
+      "id": "der-gate-high-s-reject",
+      "sig_hex": "304502204f98832e4c252aa7ca642b94d442f1ed0b5f72849ef6da95b6c95d16ffa21af8022100f4237d7ae56a2530433c56602d2d8e9798f668cfe5ce2347a538ea11fb79ac13"
+    },
+    {
+      "expect": "der_gate_reject",
+      "id": "der-gate-non-strict-leading-zero",
+      "sig_hex": "30450221004f98832e4c252aa7ca642b94d442f1ed0b5f72849ef6da95b6c95d16ffa21af802200bdc82851a95dacfbcc3a99fd2d2716721b87416c97a7cf41a99747ad4bc952e"
+    },
+    {
+      "expect": "der_gate_reject",
+      "id": "der-gate-trailing-bytes",
+      "sig_hex": "304402204f98832e4c252aa7ca642b94d442f1ed0b5f72849ef6da95b6c95d16ffa21af802200bdc82851a95dacfbcc3a99fd2d2716721b87416c97a7cf41a99747ad4bc952eaa"
+    }
+  ]
+}

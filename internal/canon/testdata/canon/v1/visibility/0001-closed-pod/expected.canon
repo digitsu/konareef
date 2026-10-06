@@ -1,0 +1,11 @@
+#!konareef-toml/v1
+[directive]
+task = "Do the private work"
+template = "./prompts/system.md"
+[pod]
+name = "closed-pod"
+runtime = "orca"
+version = "0.1.0"
+visibility = "closed"
+[_files]
+"prompts/system.md" = "sha256:16f112aaae025f47b68214cdbc0a412f6168f2d0286bdcd8409beb64ff6e352d"
