@@ -1,0 +1,31 @@
+#!konareef-toml/v1
+pod_spec_version = "0.1"
+[budget]
+max_sats = 1000
+[dependencies]
+secrets = ["PUBLIC_DEP_TOKEN"]
+[directive]
+max_iterations = 1
+template = "./prompts/task.md"
+[network]
+egress = [
+"api.public-dep.example",
+"*.public-wild.example",
+"mcp.public-port.example"
+]
+sealed_grants = "konareef-sealed-grants/v1"
+[[network.gateway]]
+auth = "bearer"
+host = "pay.public-dep.example"
+max_calls = 10
+secret = "PUBLIC_DEP_TOKEN"
+[pod]
+name = "sealed-grants-fixture"
+version = "1.0.0"
+visibility = "closed"
+[runtime]
+execution_class = "cloud"
+kind = "lobster"
+[_files]
+"prompts/task.md" = "sha256:fac814c737efbb3b1ac7a1fb11ef5340b4b27deae9aa6e570b5a14ac9f9ba26d"
+"sealed/grants.toml" = "sha256:015c997870376562f4bfd990eb3a39993e6a250c85ebbb3f37be2fa68a673998"

@@ -1,0 +1,6 @@
+Copied from reef-core commit df2858918a16a994282b20aec60ac63c9144144d (main, after US-110), directory
+test/support/fixtures/reef_ocsf_v1/ (the US-108 reef-ocsf/v1 vectors).
+The .records, manifest.json and real_run.gateway.json files are byte copies.
+README.md is a copy with the reef-core document paths replaced by document
+names (the public mirror refuses those paths).
+Copy all files again after the vectors change in reef-core.

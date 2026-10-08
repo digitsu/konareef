@@ -1,0 +1,64 @@
+{
+ "_purpose": "request_digest vectors for konareef-commission-admission/v1 (IB-06); vendor byte for byte",
+ "_rule": "request_digest = SHA-256(RFC 8785 JCS of inputs); omitted inputs = {}; inputs are a JSON object of strings",
+ "cases": [
+  {
+   "id": "J01",
+   "why": "omitted inputs are read as {}",
+   "inputs": null,
+   "canonical_json": "{}",
+   "request_digest_hex": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+  },
+  {
+   "id": "J02",
+   "why": "one ASCII pair",
+   "inputs": {
+    "topic": "risky MRs"
+   },
+   "canonical_json": "{\"topic\":\"risky MRs\"}",
+   "request_digest_hex": "1768d90f26ae591876c0c3272ea302b1927a24aec73bd179690f387b9f2b0846"
+  },
+  {
+   "id": "J03",
+   "why": "keys sort by UTF-16 code units: U+1F600 (surrogates D83D DE00) sorts before U+FB33",
+   "inputs": {
+    "1": "5",
+    "10": "4",
+    "a": "3",
+    "דּ": "1",
+    "😀": "2"
+   },
+   "canonical_json": "{\"1\":\"5\",\"10\":\"4\",\"a\":\"3\",\"😀\":\"2\",\"דּ\":\"1\"}",
+   "request_digest_hex": "d89cdcba5456809bef31bd35ac691d33f0cbec94b2858c20d6a54ab8aaa2b628"
+  },
+  {
+   "id": "J04",
+   "why": "only quote, backslash and C0 controls are escaped; U+2028, non-ASCII and <>& are written raw",
+   "inputs": {
+    "k": "a\"b\\c\n\u0001\u2028é\b\t\f\r\u001f<>&"
+   },
+   "canonical_json": "{\"k\":\"a\\\"b\\\\c\\n\\u0001\u2028é\\b\\t\\f\\r\\u001f<>&\"}",
+   "request_digest_hex": "4b2b478cfa59d22b80afb757ff1da14f804d190d75079feecce81a00bdb8a5b3"
+  },
+  {
+   "id": "J05",
+   "why": "empty key and empty value",
+   "inputs": {
+    "": ""
+   },
+   "canonical_json": "{\"\":\"\"}",
+   "request_digest_hex": "86cfeee6df382a203f626305afbca44d228cac67acd151ccf2db29530c548fea"
+  },
+  {
+   "id": "J06",
+   "why": "keys that differ only after a shared prefix",
+   "inputs": {
+    "a": "y",
+    "ab": "x",
+    "abc": "z"
+   },
+   "canonical_json": "{\"a\":\"y\",\"ab\":\"x\",\"abc\":\"z\"}",
+   "request_digest_hex": "d1c574920209b4b02b0573f14d5f7f0d23ee95039b8024bfe1a358be9f12d4ab"
+  }
+ ]
+}

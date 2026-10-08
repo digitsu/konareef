@@ -1,0 +1,74 @@
+{
+  "description": "The Open Brain tool-log ids that the OpenShell cross-check rule X2 counts. OpenCode writes the tool-log id of an MCP tool as <MCP server key>_<tool name with . replaced by _>.",
+  "id_form": "<MCP server key>_<tool name with . replaced by _>",
+  "source": {
+    "repository": "reef-core",
+    "commit": "df2858918a16a994282b20aec60ac63c9144144d",
+    "server_key": {
+      "value": "open_brain",
+      "file": "lib/pod/agent/runtime/opencode/config_materializer.ex",
+      "line": 152
+    },
+    "tool_names": {
+      "function": "Pod.OpenBrain.McpTransport.static_tools/0",
+      "file": "lib/pod/open_brain/mcp_transport.ex"
+    }
+  },
+  "tools": [
+    {
+      "name": "proofs.list",
+      "line": 157,
+      "id": "open_brain_proofs_list"
+    },
+    {
+      "name": "budget.get",
+      "line": 169,
+      "id": "open_brain_budget_get"
+    },
+    {
+      "name": "plan.get_state",
+      "line": 174,
+      "id": "open_brain_plan_get_state"
+    },
+    {
+      "name": "plan.update_task",
+      "line": 180,
+      "id": "open_brain_plan_update_task"
+    },
+    {
+      "name": "openbrain.report_usage",
+      "line": 201,
+      "id": "open_brain_openbrain_report_usage"
+    },
+    {
+      "name": "openbrain.inspect_memory",
+      "line": 224,
+      "id": "open_brain_openbrain_inspect_memory"
+    },
+    {
+      "name": "openbrain.list_review_queue",
+      "line": 234,
+      "id": "open_brain_openbrain_list_review_queue"
+    },
+    {
+      "name": "openbrain.review_memory",
+      "line": 245,
+      "id": "open_brain_openbrain_review_memory"
+    },
+    {
+      "name": "openbrain.get_recall_trace",
+      "line": 276,
+      "id": "open_brain_openbrain_get_recall_trace"
+    },
+    {
+      "name": "openbrain.recall",
+      "line": 286,
+      "id": "open_brain_openbrain_recall"
+    },
+    {
+      "name": "openbrain.writeback",
+      "line": 317,
+      "id": "open_brain_openbrain_writeback"
+    }
+  ]
+}
