@@ -1,0 +1,12 @@
+{
+  "error": {
+    "kind": "mcp_grant_host_also_declared_egress",
+    "hosts": ["mcp.example.com"],
+    "conflicts": [
+      {"grant": "mcp.example.com", "grant_index": 1, "authority": "mcp.example.com:443", "egress": "*.example.com", "egress_index": 1},
+      {"grant": "mcp.example.com", "grant_index": 1, "authority": "mcp.example.com:443", "egress": "mcp.example.com", "egress_index": 2}
+    ],
+    "conflicts_truncated": false,
+    "message": "these hosts are brokered MCP grants and are also reachable through [network].egress; a brokered host is reached only through the broker, so remove or narrow each egress entry listed in conflicts"
+  }
+}

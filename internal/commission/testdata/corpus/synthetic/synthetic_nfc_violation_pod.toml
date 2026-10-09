@@ -1,0 +1,42 @@
+pod_spec_version = "0.1"
+
+# SYNTHETIC FIXTURE — not an authorized real pod. No buyer has commissioned
+# this manifest and it must never be cited as evidence of what a real pod
+# declares. Added 2026-09-24 (IB-09, konareef#24) to exercise a closure-corpus
+# refusal path that konareef's two real example pods (../demo_pods_voice-forge_pod.toml,
+# ../examples_pods_code-reviewer_pod.toml) happen not to trigger: a
+# [[context.tools]] source that is valid UTF-8 but not NFC-normalized.
+#
+# TestClosureCorpus asserts FromSpec refuses this manifest with
+# ErrToolNameNotNFC (tool-policy semantics ADR decision D5,
+# docs/design/tool-policy-semantics-adr.md), the same rule
+# testdata/toolpolicy/cases.json fixture TP-07/TP-08 already pins at the
+# byte level. This fixture proves the same rule fires on a full pod
+# manifest through the closure-corpus path (FromSpec), not only in the
+# narrower toolpolicy unit test. Do not "fix" the tool name to its NFC form:
+# that would silence the fixture's entire purpose.
+[pod]
+name = "synthetic-nfc-violation"
+version = "0.0.1-synthetic"
+description = "Synthetic-only fixture for a non-NFC [[context.tools]] source. Never published, never run."
+authors = ["IB-09 (evidence corpus, 2026-09-24)"]
+license = "Apache-2.0"
+tags = ["synthetic", "closure-corpus", "ib-09"]
+lineage_id = "00000000000000000000000000000ib09"
+
+[runtime]
+kind = "lobster"
+version = "^0.1"
+
+[model]
+provider = "anthropic"
+name = "claude-sonnet-4-5"
+
+# 'café-lint' is NFD: the base names below decompose "e" + a combining
+# acute accent (U+0301), not the precomposed U+00E9. Byte-identical to the
+# eye, byte-different to canon.FieldsRoot and to ValidateToolAuthorityCommitted.
+[[context.tools]]
+source = "café-lint"
+
+[budget]
+max_sats = 1000

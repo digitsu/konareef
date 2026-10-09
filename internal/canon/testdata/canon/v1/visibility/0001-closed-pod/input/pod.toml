@@ -1,0 +1,12 @@
+# A closed pod: the body below is encrypted at publish and never served
+# in the clear. The manifest still commits to every body file via [_files]
+# — that is the whole body commitment; there is no [body] table.
+[pod]
+name = "closed-pod"
+version = "0.1.0"
+visibility = "closed"
+runtime = "orca"
+
+[directive]
+task = "Do the private work"
+template = "./prompts/system.md"

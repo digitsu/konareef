@@ -1,0 +1,10 @@
+Copied from reef-core commit d6d5d381 (branch fix/openshell-p2-fail-closed,
+MR !333, the fail-closed fix round of 2026-10-09), directory
+test/support/fixtures/reef_ocsf_v1/ (the US-108 reef-ocsf/v1 vectors and
+supervisor_markers.json, the pinned supervisor marker rule).
+The .records, manifest.json, real_run.gateway.json and supervisor_markers.json
+files are byte copies. The .records, manifest.json and real_run.gateway.json
+files did not change since reef-core commit df2858918a16a994282b20aec60ac63c9144144d.
+README.md is a copy with the reef-core document paths replaced by document
+names. It is not in the public export (.public-export.json).
+Copy all files again after the vectors change in reef-core.

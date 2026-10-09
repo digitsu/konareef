@@ -1,0 +1,5 @@
+# FieldsRoot runs before canonicalBody (CanonicalizeV2, commit.go), so
+# the params.json commitment error fires regardless of this document's
+# content; it only needs to be present and readable.
+[pod]
+name = "duplicate-entry"

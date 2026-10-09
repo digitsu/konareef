@@ -1,0 +1,991 @@
+{
+  "format": "konareef-egress-vectors/v1",
+  "_comment": "Shared egress conformance vectors (K4-01). internal/pod/egress_review_test.go checks the konareef scanner against this file. scripts/check_egress_vectors.exs checks the reef-core scanner (EgressDeclaration and EgressScanner at a git ref) against the same file. When both pass, the client and the server agree on every case below. A change here needs a matching change on the other side in a linked MR. scanner_version and policy_version name the reef-core scanner constants these expectations were checked against. Findings are compared as sets, because neither side promises an order. The breadth section (EGRESS-BREADTH, reef-core#87) is checked by internal/pod/egress_breadth_test.go and by reef-core's EgressBreadth parity test; both sides embed the Public Suffix List file that breadth.psl names, and each side fails a test when its embedded file does not have that SHA-256.",
+  "scanner_version": "v1",
+  "policy_version": "v1",
+  "platform_host": "api.anthropic.com:443",
+  "host_matching": [
+    {
+      "declared": "api.example.com",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": true
+    },
+    {
+      "declared": "api.example.com",
+      "host": "api.example.com",
+      "port": 8080,
+      "allowed": false
+    },
+    {
+      "declared": "api.example.com:8080",
+      "host": "api.example.com",
+      "port": 8080,
+      "allowed": true
+    },
+    {
+      "declared": "api.example.com:0443",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": true,
+      "note": "ports compare as numbers"
+    },
+    {
+      "declared": "api.example.com:0",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": false,
+      "note": "a port outside 1..65535 is not a port; the whole entry is read as a host"
+    },
+    {
+      "declared": "*.example.com",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": true
+    },
+    {
+      "declared": "*.example.com",
+      "host": "a.b.example.com",
+      "port": 443,
+      "allowed": true
+    },
+    {
+      "declared": "*.example.com",
+      "host": "example.com",
+      "port": 443,
+      "allowed": false,
+      "note": "a wildcard never matches the apex"
+    },
+    {
+      "declared": "*.example.com",
+      "host": "badexample.com",
+      "port": 443,
+      "allowed": false,
+      "note": "a wildcard never matches an unrelated suffix"
+    },
+    {
+      "declared": "*.example.com",
+      "host": "api.example.com.evil.net",
+      "port": 443,
+      "allowed": false
+    },
+    {
+      "declared": "*.example.com:8443",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": false
+    },
+    {
+      "declared": "API.Example.com.",
+      "host": "api.example.com",
+      "port": 443,
+      "allowed": true,
+      "note": "lowercased, one trailing dot stripped"
+    },
+    {
+      "declared": "api.example.com",
+      "host": "API.EXAMPLE.COM.",
+      "port": 443,
+      "allowed": true,
+      "note": "the requested host is normalized the same way"
+    },
+    {
+      "declared": "[::1]:8443",
+      "host": "[::1]",
+      "port": 8443,
+      "allowed": true,
+      "note": "bracketed IPv6"
+    },
+    {
+      "declared": "[::1]",
+      "host": "[::1]",
+      "port": 443,
+      "allowed": true
+    }
+  ],
+  "ip_literal": [
+    {
+      "host": "127.0.0.1",
+      "ip": true
+    },
+    {
+      "host": "127.1",
+      "ip": true
+    },
+    {
+      "host": "2130706433",
+      "ip": true
+    },
+    {
+      "host": "0x7f000001",
+      "ip": true
+    },
+    {
+      "host": "0177.0.0.1",
+      "ip": true
+    },
+    {
+      "host": "0",
+      "ip": true
+    },
+    {
+      "host": "1.16777215",
+      "ip": true
+    },
+    {
+      "host": "1.16777216",
+      "ip": false
+    },
+    {
+      "host": "4294967296",
+      "ip": false
+    },
+    {
+      "host": "256.1",
+      "ip": false
+    },
+    {
+      "host": "08.1.1.1",
+      "ip": false
+    },
+    {
+      "host": "1.2.3.4.5",
+      "ip": false
+    },
+    {
+      "host": "::1",
+      "ip": true
+    },
+    {
+      "host": "[::1]",
+      "ip": true
+    },
+    {
+      "host": "[2001:db8::1]",
+      "ip": true
+    },
+    {
+      "host": "::ffff:127.0.0.1",
+      "ip": true
+    },
+    {
+      "host": "example.com",
+      "ip": false
+    },
+    {
+      "host": "1e2.example.com",
+      "ip": false
+    },
+    {
+      "host": "999.999.999.999",
+      "ip": false
+    },
+    {
+      "host": "0x",
+      "ip": false
+    },
+    {
+      "host": "0-0",
+      "ip": true,
+      "note": "the server's integer parse reads -0 as 0"
+    },
+    {
+      "host": "10.0-0",
+      "ip": true
+    },
+    {
+      "host": "0x-0",
+      "ip": true
+    },
+    {
+      "host": "-0",
+      "ip": true
+    },
+    {
+      "host": "-1",
+      "ip": false
+    },
+    {
+      "host": "0--0",
+      "ip": false
+    }
+  ],
+  "declaration_presence": [
+    {
+      "name": "absent",
+      "manifest": "[pod]\nname = \"p\"",
+      "declared": false,
+      "rules": [],
+      "hash_group": "absent"
+    },
+    {
+      "name": "bare table",
+      "manifest": "[network]",
+      "declared": true,
+      "rules": [],
+      "hash_group": "bare"
+    },
+    {
+      "name": "empty egress",
+      "manifest": "[network]\negress = []",
+      "declared": true,
+      "rules": [],
+      "hash_group": "empty"
+    },
+    {
+      "name": "one exact host",
+      "manifest": "[network]\negress = [\"api.example.com\"]",
+      "declared": true,
+      "rules": [
+        {
+          "host": "api.example.com",
+          "port": 443,
+          "wildcard": false
+        }
+      ],
+      "hash_group": "one"
+    },
+    {
+      "name": "wildcard and port",
+      "manifest": "[network]\negress = [\"*.example.com\", \"svc.example.com:8443\"]",
+      "declared": true,
+      "rules": [
+        {
+          "host": "example.com",
+          "port": 443,
+          "wildcard": true
+        },
+        {
+          "host": "svc.example.com",
+          "port": 8443,
+          "wildcard": false
+        }
+      ],
+      "hash_group": "two"
+    },
+    {
+      "name": "gateway only (OD-2 a)",
+      "manifest": "[[network.gateway]]\nhost = \"api.example.com\"\nsecret = \"K\"\nauth = \"bearer\"\nmax_calls = 1",
+      "declared": true,
+      "rules": [
+        {
+          "host": "api.example.com",
+          "port": 443,
+          "wildcard": false
+        }
+      ],
+      "hash_group": "gateway"
+    },
+    {
+      "name": "sealed-grants marker only",
+      "manifest": "[network]\nsealed_grants = \"konareef-sealed-grants/v1\"",
+      "declared": true,
+      "rules": [],
+      "hash_group": "bare"
+    }
+  ],
+  "findings": [
+    {
+      "name": "undeclared host in inline directive.task",
+      "manifest": "[directive]\ntask = \"Fetch https://evil.example.com/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "evil.example.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "declared exact host referenced, no finding",
+      "manifest": "[network]\negress = [\"good.example.com\"]\n\n[directive]\ntask = \"Fetch https://good.example.com/x\"",
+      "files": {},
+      "findings": []
+    },
+    {
+      "name": "wildcard declared; declared_unused never fires for a wildcard",
+      "manifest": "[network]\negress = [\"*.example.com\"]",
+      "files": {},
+      "findings": [
+        {
+          "code": "wildcard_declared",
+          "host": "*.example.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "IP literal declared",
+      "manifest": "[network]\negress = [\"127.0.0.1\"]",
+      "files": {},
+      "findings": [
+        {
+          "code": "ip_literal_declared",
+          "host": "127.0.0.1",
+          "port": 443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "declared_unused",
+          "host": "127.0.0.1",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "packed-integer IP literal declared",
+      "manifest": "[network]\negress = [\"2130706433\"]",
+      "files": {},
+      "findings": [
+        {
+          "code": "ip_literal_declared",
+          "host": "2130706433",
+          "port": 443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "declared_unused",
+          "host": "2130706433",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "non-443 declared entry",
+      "manifest": "[network]\negress = [\"example.com:22\"]",
+      "files": {},
+      "findings": [
+        {
+          "code": "non_tls_port",
+          "host": "example.com",
+          "port": 22,
+          "source_class": "manifest"
+        },
+        {
+          "code": "declared_unused",
+          "host": "example.com",
+          "port": 22,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "non-443 gateway entry counts as a declaration and is flagged the same way",
+      "manifest": "[[network.gateway]]\nhost = \"api.example.com:8443\"\nsecret = \"K\"\nauth = \"bearer\"\nmax_calls = 1",
+      "files": {},
+      "findings": [
+        {
+          "code": "non_tls_port",
+          "host": "api.example.com",
+          "port": 8443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "declared_unused",
+          "host": "api.example.com",
+          "port": 8443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "plain http scheme adds non_tls_port beside undeclared_host",
+      "manifest": "[directive]\ntask = \"Fetch http://plain.example.com/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "plain.example.com",
+          "port": 80,
+          "source_class": "manifest"
+        },
+        {
+          "code": "non_tls_port",
+          "host": "plain.example.com",
+          "port": 80,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "plain http to a host declared on port 80 is declared but still non-TLS",
+      "manifest": "[network]\negress = [\"plain.example.com:80\"]\n\n[directive]\ntask = \"Fetch http://plain.example.com/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "non_tls_port",
+          "host": "plain.example.com",
+          "port": 80,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "dynamic host template placeholder is reported as its literal text",
+      "manifest": "[directive]\ntask = \"curl https://{{HOST}}/webhook and https://${TARGET}/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "{{host}}",
+          "port": 443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "${target}",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "platform host takes precedence over undeclared_host",
+      "manifest": "[directive]\ntask = \"curl https://api.anthropic.com/v1/messages\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "platform_host_referenced",
+          "host": "api.anthropic.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "explicitly declared platform host is not reported",
+      "manifest": "[network]\negress = [\"api.anthropic.com\"]\n\n[directive]\ntask = \"curl https://api.anthropic.com/v1/messages\"",
+      "files": {},
+      "findings": []
+    },
+    {
+      "name": "trailing dot on a referenced host matches the declaration",
+      "manifest": "[network]\negress = [\"api.example.com\"]\n\n[directive]\ntask = \"See https://api.example.com./v1 and https://API.example.com/v2\"",
+      "files": {},
+      "findings": []
+    },
+    {
+      "name": "userinfo is dropped and the explicit port is read",
+      "manifest": "[network]\negress = [\"api.example.com:8443\"]\n\n[directive]\ntask = \"curl https://user:pw@api.example.com:8443/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "non_tls_port",
+          "host": "api.example.com",
+          "port": 8443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "wildcard covers a subdomain reference but not the apex",
+      "manifest": "[network]\negress = [\"*.example.com\"]\n\n[directive]\ntask = \"https://api.example.com/a https://example.com/b\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "wildcard_declared",
+          "host": "*.example.com",
+          "port": 443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "example.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "declared exact host that no text names is declared_unused",
+      "manifest": "[network]\negress = [\"used.example.com\", \"spare.example.com\"]\n\n[directive]\ntask = \"https://used.example.com/\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "declared_unused",
+          "host": "spare.example.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "gateway host named by URL is declared",
+      "manifest": "[[network.gateway]]\nhost = \"api.example.com\"\nsecret = \"K\"\nauth = \"bearer\"\nmax_calls = 1\n\n[directive]\ntask = \"https://api.example.com/v1\"",
+      "files": {},
+      "findings": []
+    },
+    {
+      "name": "bracketed IPv6 reference to a declared address",
+      "manifest": "[network]\negress = [\"[2001:db8::1]:8443\"]\n\n[directive]\ntask = \"https://[2001:db8::1]:8443/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "ip_literal_declared",
+          "host": "[2001:db8::1]",
+          "port": 8443,
+          "source_class": "manifest"
+        },
+        {
+          "code": "non_tls_port",
+          "host": "[2001:db8::1]",
+          "port": 8443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "non-ASCII host is stored as the invalid-host sentinel",
+      "manifest": "[directive]\ntask = \"https://exämple.com/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "<invalid-host>",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "one source class per context kind",
+      "manifest": "[directive]\ntemplate = \"./directive.md\"\n\n[[context.skills]]\nsource = \"./skills\"\n\n[[context.prompts]]\npath = \"./prompts/p.md\"\n\n[[context.memory]]\nkind = \"file\"\npath = \"./memory/m.md\"\n\n[[context.memory]]\nkind = \"http\"\nurl = \"https://mem.example.com/feed\"",
+      "files": {
+        "directive.md": "Go to https://dir.example.com/x.",
+        "skills/a/SKILL.md": "Call https://skill.example.com/api",
+        "skills/notes.txt": "https://not-scanned.example.com/ is not markdown",
+        "prompts/p.md": "(https://prompt.example.com/q)",
+        "memory/m.md": "https://memfile.example.com/"
+      },
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "dir.example.com",
+          "port": 443,
+          "source_class": "directive"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "skill.example.com",
+          "port": 443,
+          "source_class": "skill"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "prompt.example.com",
+          "port": 443,
+          "source_class": "prompt"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "memfile.example.com",
+          "port": 443,
+          "source_class": "memory_file"
+        },
+        {
+          "code": "undeclared_host",
+          "host": "mem.example.com",
+          "port": 443,
+          "source_class": "memory_http"
+        }
+      ]
+    },
+    {
+      "name": "uppercase scheme is still a URL",
+      "manifest": "[directive]\ntask = \"HTTPS://Shout.Example.com/x\"",
+      "files": {},
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "shout.example.com",
+          "port": 443,
+          "source_class": "manifest"
+        }
+      ]
+    },
+    {
+      "name": "a vertical tab ends a URL, as whitespace does",
+      "manifest": "[network]\negress = [\"api.example.com\"]\n\n[[context.prompts]]\npath = \"./p.md\"",
+      "files": {
+        "p.md": "https://api.example.com/p\u000bhttps://evil.example.net/x"
+      },
+      "findings": [
+        {
+          "code": "undeclared_host",
+          "host": "evil.example.net",
+          "port": 443,
+          "source_class": "prompt"
+        }
+      ]
+    },
+    {
+      "name": "a vertical tab ends a declared memory URL's authority",
+      "manifest": "[network]\negress = [\"api.example.com\"]\n\n[[context.memory]]\nkind = \"http\"\nurl = \"https://api.example.com\\u000B.evil.net/\"",
+      "files": {},
+      "findings": [],
+      "safety_check_stricter": true,
+      "note": "The review ends the authority at the vertical tab and sees a declared host. konareef's listing pre-check refuses the whole URL because net/url rejects the control byte. The pre-check is stricter than the server here, which is the safe direction."
+    }
+  ],
+  "uninspectable": [
+    {
+      "name": "skill path with a doubled slash",
+      "manifest": "[[context.skills]]\nsource = \"./skills//a.md\"",
+      "files": {
+        "skills/a.md": "x"
+      }
+    },
+    {
+      "name": "skill path with a dot segment",
+      "manifest": "[[context.skills]]\nsource = \"./skills/./a.md\"",
+      "files": {
+        "skills/a.md": "x"
+      }
+    },
+    {
+      "name": "skill directory with a trailing slash",
+      "manifest": "[[context.skills]]\nsource = \"./skills/\"",
+      "files": {
+        "skills/a.md": "x"
+      }
+    },
+    {
+      "name": "prompt path with a dot segment",
+      "manifest": "[[context.prompts]]\npath = \"./p/./q.md\"",
+      "files": {
+        "p/q.md": "x"
+      }
+    },
+    {
+      "name": "missing prompt",
+      "manifest": "[[context.prompts]]\npath = \"./p/q.md\"",
+      "files": {}
+    },
+    {
+      "name": "skill directory with no file in it",
+      "manifest": "[[context.skills]]\nsource = \"./skills\"",
+      "files": {},
+      "dirs": [
+        "skills"
+      ]
+    }
+  ],
+  "breadth": {
+    "_comment": "Egress breadth rules for a run that no egress review covers. public_suffix_wildcard: the entry is refused (egress_wildcard_public_suffix) when it is a '*.' wildcard whose base is (a) a public suffix under the PSL algorithm (exception rule, then exact rule, then a wildcard rule one label up, then the default rule '*' for any single label), or (b) a proper ancestor of any PSL rule: of an exact rule, of an exception rule, or a wildcard rule's base or one of its ancestors (owner ruling 2026-10-09). Both the ICANN and PRIVATE sections count. Unicode PSL rules are compared in their ASCII (xn--) form. rule_count: the number of distinct authorities in [network].egress (normalized host and numeric port; port 443 by default; a wildcard counts as one), and whether it is above limit (egress_rule_limit_exceeded).",
+    "psl": {
+      "upstream": "https://github.com/publicsuffix/list",
+      "file": "public_suffix_list.dat",
+      "commit": "3929462652695bad04f0a27afb600974014a3c8b",
+      "version": "publicsuffix/list@3929462652695bad04f0a27afb600974014a3c8b",
+      "sha256": "2919eb9803c91a3f73a507cc6fedc934de005543c22c4016f72e3343de5dd6e7",
+      "sections": [
+        "ICANN",
+        "PRIVATE"
+      ]
+    },
+    "rule_limit_unreviewed": 16,
+    "public_suffix_wildcard": [
+      {
+        "entry": "*.com:443",
+        "public_suffix_wildcard": true
+      },
+      {
+        "entry": "*.co.uk:443",
+        "public_suffix_wildcard": true
+      },
+      {
+        "entry": "*.sch.uk:443",
+        "public_suffix_wildcard": true,
+        "note": "the base of the ICANN wildcard rule *.sch.uk"
+      },
+      {
+        "entry": "*.io:443",
+        "public_suffix_wildcard": true
+      },
+      {
+        "entry": "*.uk:443",
+        "public_suffix_wildcard": true
+      },
+      {
+        "entry": "*.com",
+        "public_suffix_wildcard": true,
+        "note": "the port defaults to 443 and does not change the answer"
+      },
+      {
+        "entry": "*.COM.:443",
+        "public_suffix_wildcard": true,
+        "note": "the base is normalized: ASCII lowercase, one trailing dot removed"
+      },
+      {
+        "entry": "*.zz-unlisted-tld:443",
+        "public_suffix_wildcard": true,
+        "note": "the default rule '*' makes every single-label base a public suffix, listed or not"
+      },
+      {
+        "entry": "*.example.com:443",
+        "public_suffix_wildcard": false
+      },
+      {
+        "entry": "*.example.org:443",
+        "public_suffix_wildcard": false,
+        "note": "neither a public suffix nor an ancestor of any PSL rule"
+      },
+      {
+        "entry": "*.example.co.uk:443",
+        "public_suffix_wildcard": false
+      },
+      {
+        "entry": "*.api.example.co.uk:443",
+        "public_suffix_wildcard": false
+      },
+      {
+        "entry": "*.github.io:443",
+        "public_suffix_wildcard": true,
+        "note": "PRIVATE section"
+      },
+      {
+        "entry": "*.herokuapp.com:443",
+        "public_suffix_wildcard": true,
+        "note": "PRIVATE section"
+      },
+      {
+        "entry": "*.s3.amazonaws.com:443",
+        "public_suffix_wildcard": true,
+        "note": "PRIVATE section"
+      },
+      {
+        "entry": "*.my-site.github.io:443",
+        "public_suffix_wildcard": false
+      },
+      {
+        "entry": "*.eu-west-1.compute.amazonaws.com:443",
+        "public_suffix_wildcard": true,
+        "note": "PRIVATE wildcard rule *.compute.amazonaws.com"
+      },
+      {
+        "entry": "*.compute.amazonaws.com:443",
+        "public_suffix_wildcard": true,
+        "note": "the base of the PRIVATE wildcard rule *.compute.amazonaws.com"
+      },
+      {
+        "entry": "*.amazonaws.com:443",
+        "public_suffix_wildcard": true,
+        "note": "not a public suffix, but a proper ancestor of PSL rules such as s3.amazonaws.com"
+      },
+      {
+        "entry": "*.foo.ck:443",
+        "public_suffix_wildcard": true,
+        "note": "ICANN wildcard rule *.ck"
+      },
+      {
+        "entry": "*.www.ck:443",
+        "public_suffix_wildcard": false,
+        "note": "exception rule !www.ck"
+      },
+      {
+        "entry": "*.foo.kawasaki.jp:443",
+        "public_suffix_wildcard": true,
+        "note": "wildcard rule *.kawasaki.jp"
+      },
+      {
+        "entry": "*.city.kawasaki.jp:443",
+        "public_suffix_wildcard": false,
+        "note": "exception rule !city.kawasaki.jp"
+      },
+      {
+        "entry": "*.kobe.jp:443",
+        "public_suffix_wildcard": true,
+        "note": "the parent of the exception rule !city.kobe.jp"
+      },
+      {
+        "entry": "*.city.kobe.jp:443",
+        "public_suffix_wildcard": false,
+        "note": "exception rule !city.kobe.jp: registrable, and no rule lies under it"
+      },
+      {
+        "entry": "*.kawasaki.jp:443",
+        "public_suffix_wildcard": true,
+        "note": "kawasaki.jp is not itself a public suffix, but it is the base of the wildcard rule *.kawasaki.jp and an ancestor of !city.kawasaki.jp"
+      },
+      {
+        "entry": "*.xn--55qx5d.cn:443",
+        "public_suffix_wildcard": true,
+        "note": "the PSL writes this rule in Unicode; it must match in its ASCII form"
+      },
+      {
+        "entry": "*.example.xn--55qx5d.cn:443",
+        "public_suffix_wildcard": false
+      },
+      {
+        "entry": "*.xn--p1ai:443",
+        "public_suffix_wildcard": true,
+        "note": "a single-label IDN suffix, listed in Unicode"
+      },
+      {
+        "entry": "com:443",
+        "public_suffix_wildcard": false,
+        "note": "an exact entry names one host and is never refused by this rule"
+      },
+      {
+        "entry": "co.uk:443",
+        "public_suffix_wildcard": false,
+        "note": "an exact entry names one host and is never refused by this rule"
+      },
+      {
+        "entry": "github.io",
+        "public_suffix_wildcard": false,
+        "note": "an exact entry names one host and is never refused by this rule"
+      },
+      {
+        "entry": "api.example.com:443",
+        "public_suffix_wildcard": false
+      }
+    ],
+    "rule_count": [
+      {
+        "name": "empty",
+        "egress": [],
+        "count": 0,
+        "limit": 16,
+        "exceeded": false
+      },
+      {
+        "name": "normalized duplicates are one rule",
+        "egress": [
+          "A.example.com.",
+          "a.example.com",
+          "a.example.com:443",
+          "a.example.com:0443"
+        ],
+        "count": 1,
+        "limit": 16,
+        "exceeded": false
+      },
+      {
+        "name": "another port is another rule",
+        "egress": [
+          "a.example.com",
+          "a.example.com:8443"
+        ],
+        "count": 2,
+        "limit": 16,
+        "exceeded": false
+      },
+      {
+        "name": "a wildcard counts once and is distinct from its apex",
+        "egress": [
+          "*.example.com",
+          "example.com",
+          "*.EXAMPLE.com.:443"
+        ],
+        "count": 2,
+        "limit": 16,
+        "exceeded": false
+      },
+      {
+        "name": "at the limit",
+        "egress": [
+          "h01.example.com",
+          "h02.example.com",
+          "h03.example.com",
+          "h04.example.com",
+          "h05.example.com",
+          "h06.example.com",
+          "h07.example.com",
+          "h08.example.com",
+          "h09.example.com",
+          "h10.example.com",
+          "h11.example.com",
+          "h12.example.com",
+          "h13.example.com",
+          "h14.example.com",
+          "h15.example.com",
+          "h16.example.com"
+        ],
+        "count": 16,
+        "limit": 16,
+        "exceeded": false
+      },
+      {
+        "name": "one above the limit",
+        "egress": [
+          "h01.example.com",
+          "h02.example.com",
+          "h03.example.com",
+          "h04.example.com",
+          "h05.example.com",
+          "h06.example.com",
+          "h07.example.com",
+          "h08.example.com",
+          "h09.example.com",
+          "h10.example.com",
+          "h11.example.com",
+          "h12.example.com",
+          "h13.example.com",
+          "h14.example.com",
+          "h15.example.com",
+          "h16.example.com",
+          "h17.example.com"
+        ],
+        "count": 17,
+        "limit": 16,
+        "exceeded": true
+      },
+      {
+        "name": "seventeen entries with one duplicate",
+        "egress": [
+          "h01.example.com",
+          "h02.example.com",
+          "h03.example.com",
+          "h04.example.com",
+          "h05.example.com",
+          "h06.example.com",
+          "h07.example.com",
+          "h08.example.com",
+          "h09.example.com",
+          "h10.example.com",
+          "h11.example.com",
+          "h12.example.com",
+          "h13.example.com",
+          "h14.example.com",
+          "h15.example.com",
+          "h16.example.com",
+          "H01.example.com:443"
+        ],
+        "count": 16,
+        "limit": 16,
+        "exceeded": false
+      },
+      {
+        "name": "sixteen exact hosts and one wildcard",
+        "egress": [
+          "h01.example.com",
+          "h02.example.com",
+          "h03.example.com",
+          "h04.example.com",
+          "h05.example.com",
+          "h06.example.com",
+          "h07.example.com",
+          "h08.example.com",
+          "h09.example.com",
+          "h10.example.com",
+          "h11.example.com",
+          "h12.example.com",
+          "h13.example.com",
+          "h14.example.com",
+          "h15.example.com",
+          "h16.example.com",
+          "*.cdn.example.net"
+        ],
+        "count": 17,
+        "limit": 16,
+        "exceeded": true
+      }
+    ]
+  }
+}

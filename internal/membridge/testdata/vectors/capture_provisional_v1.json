@@ -1,0 +1,38 @@
+{
+  "description": "konareef-local copy of the two PRD 4 \u00a7B.6.1 capture provisional-id vectors. They were in the pre-2026-06-10 upstream vector file and are absent from the current one. The provisional_id, logical_key and index fields do not depend on the tree hash and are still checked. expected_value_hash and expected_leaf_hash are the pre-swap SHA-256 values; they are kept for history and are NOT checked (the value hash is now Poseidon).",
+  "source": "paygate-zk docs/prds/konareef-integration-contract-conformance-vectors-v1.json before the 2026-06-10 PRD 4 hash swap (mirrored into konareef testdata/vectors/v1.json on 2026-06-08)",
+  "vectors": [
+    {
+      "description": "Canonical provisional capture (PRD 4 \u00a7B.6.1): SHA-256(DTAG_PROV(0x22) || content_hash || be_u64(task_id) || be_u32(ordinal))[0:8] interpreted as be_u64. The vector pins byte-exact expected provisional_id, then chains the result as a thought_id through the B.1 derivation (logical_key, index, value_hash, leaf_hash) under SALT_A. Distinguishes a self-referential 'wantPID := ProvisionalID(...)' test from a genuine golden anchor.",
+      "expected": {
+        "expected_index": 906428,
+        "expected_leaf_hash": "659032f34cc6fc94fdb4d4fd298f21b1d64af55a13561e391e6e8bdbebbc0da1",
+        "expected_logical_key_hex": "2020aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0ac4a6e8aea293bbb9fa01",
+        "expected_provisional_id_hex": "fa72ec9a25da1344",
+        "expected_value_hash": "7cf222298d5f1162eec9b383b6d08725a078b6f871447abc592e397a5be1ffaa",
+        "verdict": "accept"
+      },
+      "id": "capture-provisional-id-canonical",
+      "inputs": {
+        "content_hash": "4242424242424242424242424242424242424242424242424242424242424242",
+        "ordinal": 4,
+        "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "task_id": 99
+      }
+    },
+    {
+      "description": "Provisional reconciliation MUST reject when a claimed provisional_id does not equal the recomputed value (PRD 4 \u00a7B.6.1 fail-closed gate). The claimed value here is provisional_id+1 from capture-provisional-id-canonical; ReconcileProvisional(recomputed, claimed) MUST surface ERR_PROVISIONAL_ID_MISMATCH.",
+      "expected": {
+        "expected_error": "ERR_PROVISIONAL_ID_MISMATCH",
+        "verdict": "ERR_PROVISIONAL_ID_MISMATCH"
+      },
+      "id": "capture-provisional-id-mismatch-reject",
+      "inputs": {
+        "claimed_provisional_id_hex": "fa72ec9a25da1345",
+        "content_hash": "4242424242424242424242424242424242424242424242424242424242424242",
+        "ordinal": 4,
+        "task_id": 99
+      }
+    }
+  ]
+}

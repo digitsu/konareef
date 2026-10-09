@@ -1,0 +1,13 @@
+#!konareef-toml/v1
+[a]
+matrix = [
+[
+1,
+2
+],
+[
+3,
+4
+]
+]
+[_files]
