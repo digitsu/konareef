@@ -1,0 +1,33 @@
+{
+  "rule": "reef-ocsf/v1",
+  "vectors": [
+    {
+      "name": "real_run",
+      "file": "real_run.records",
+      "record_count": 82,
+      "root": "039d4d8d49c819b07e8cd6fbe8d1375e037fc70748cfa3e3affe01be5db410d0",
+      "description": "US-102 fixture run (reef-core, OpenCode, listener traffic); the supervisor marker comes after drain_end_seq"
+    },
+    {
+      "name": "real_run_marker_before_drain",
+      "file": "real_run_marker_before_drain.records",
+      "record_count": 82,
+      "root": "a9a47c874fdd6ce7134b2b037fcff69b2e23ac60e1eda0630dc9696de551500d",
+      "description": "the same events with drain_end_seq 58: the supervisor marker (seq 57) comes before the drain end"
+    },
+    {
+      "name": "non_ascii",
+      "file": "non_ascii.records",
+      "record_count": 7,
+      "root": "9321f3cbe81bae5704fa17320a2b799297ae45ee952b61a99c8f8736b775f26e",
+      "description": "a short complete stream with one HTTP:GET record whose msg holds non-ASCII characters"
+    },
+    {
+      "name": "control_character",
+      "file": "control_character.records",
+      "record_count": 7,
+      "root": "eae56bc5f4b20a6c99808dd6938f2de25cda7ae8cf6a50a5731d615f5627693c",
+      "description": "a short stream with one NET:OPEN record whose msg holds a C0 control character (BEL), escaped by JCS"
+    }
+  ]
+}

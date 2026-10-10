@@ -1,0 +1,20 @@
+#!konareef-toml/v2
+pod_spec_version = "0.1"
+[budget]
+max_sats = 2500
+[context]
+[[context.tools]]
+source = "bash"
+[[context.tools]]
+source = "ripgrep"
+[directive]
+template = "./prompts/system.md"
+[pod]
+name = "commission-fixture"
+version = "1.0.0"
+[runtime]
+kind = "lobster"
+[_files]
+"prompts/system.md" = "sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+[_commit]
+fields_root = "poseidon:89a64cba6a807fd7402a607b85847b29fdef7e7cf121d4174955ba7e776ac825"

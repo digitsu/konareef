@@ -1,0 +1,58 @@
+{
+  "_comment": "Shared vectors for the brokered-MCP tool-name and runtime rules. konareef internal/pod/mcp_broker_test.go checks the Go rules against this file; scripts/check_mcp_broker_vectors.exs checks the reef-core rules (ReefCore.Egress.McpBroker.Grants, ReefCore.OpenBrain.McpTransport.static_tools/0, Pod.Spec.RuntimeRegistry, Pod.Spec.SpawnerAdapter @mcp_broker_runtimes) against the same file. Change a vector only when both checks pass.",
+  "reef_core_source": "origin/main 0d0b03e79bcced13f5c74310855d45da0d0a853f",
+  "opencode_server_key": "open_brain",
+  "builtin_tool_names": [
+    "proofs.list",
+    "budget.get",
+    "plan.get_state",
+    "plan.update_task",
+    "openbrain.report_usage",
+    "openbrain.inspect_memory",
+    "openbrain.list_review_queue",
+    "openbrain.review_memory",
+    "openbrain.get_recall_trace",
+    "openbrain.recall",
+    "openbrain.writeback"
+  ],
+  "opencode_tool_name": [
+    {"name": "a namespaced tool", "tool": "jira.get_issue", "rendered": "open_brain_jira_get_issue"},
+    {"name": "hyphen is kept", "tool": "a-b.c", "rendered": "open_brain_a-b_c"},
+    {"name": "case is kept", "tool": "Jira.Get", "rendered": "open_brain_Jira_Get"},
+    {"name": "space and slash", "tool": "a b/c", "rendered": "open_brain_a_b_c"},
+    {"name": "empty", "tool": "", "rendered": "open_brain_"},
+    {"name": "trailing newline", "tool": "tool\n", "rendered": "open_brain_tool_"},
+    {"name": "two-byte UTF-8 is two underscores", "tool": "é", "rendered": "open_brain___"},
+    {"name": "three-byte UTF-8 is three underscores", "tool": "日", "rendered": "open_brain____"},
+    {"name": "mixed UTF-8 counts bytes", "tool": "é.ü\n日", "rendered": "open_brain__________"}
+  ],
+  "name_collisions": [
+    {"name": "no grants", "grants": [], "collisions": []},
+    {"name": "a grant with no tools", "grants": [{"mcp_name": "jira", "tools": []}], "collisions": []},
+    {"name": "distinct names", "grants": [{"mcp_name": "jira", "tools": ["get_issue", "search_issues"]}], "collisions": []},
+    {"name": "underscore in namespace vs underscore in tool", "grants": [{"mcp_name": "a_b", "tools": ["c"]}, {"mcp_name": "a", "tools": ["b_c"]}], "collisions": ["a.b_c", "a_b.c"]},
+    {"name": "dot vs underscore in one grant", "grants": [{"mcp_name": "jira", "tools": ["get.issue", "get_issue"]}], "collisions": ["jira.get.issue", "jira.get_issue"]},
+    {"name": "three-way collision", "grants": [{"mcp_name": "x", "tools": ["y.z", "y_z"]}, {"mcp_name": "x_y", "tools": ["z"]}], "collisions": ["x.y.z", "x.y_z", "x_y.z"]},
+    {"name": "built-in collision through the namespace", "grants": [{"mcp_name": "plan_get", "tools": ["state"]}], "collisions": ["plan_get.state"]},
+    {"name": "built-in collision through the tool", "grants": [{"mcp_name": "openbrain_get", "tools": ["recall_trace"]}], "collisions": ["openbrain_get.recall_trace"]},
+    {"name": "built-in collision in a reserved namespace", "grants": [{"mcp_name": "proofs", "tools": ["list"]}], "collisions": ["proofs.list"]},
+    {"name": "similar built-in name is legal", "grants": [{"mcp_name": "plan_get", "tools": ["state2", "State"]}], "collisions": []},
+    {"name": "hyphen vs underscore is legal", "grants": [{"mcp_name": "jira", "tools": ["get-issue", "get_issue"]}], "collisions": []},
+    {"name": "case difference is legal", "grants": [{"mcp_name": "jira", "tools": ["Get_Issue", "get_issue"]}], "collisions": []},
+    {"name": "same namespace twice lists each copy", "grants": [{"mcp_name": "jira", "tools": ["get_issue"]}, {"mcp_name": "jira", "tools": ["get_issue"]}], "collisions": ["jira.get_issue", "jira.get_issue"]},
+    {"name": "UTF-8 byte count collides with underscores", "grants": [{"mcp_name": "jira", "tools": ["é", "__", "日"]}], "collisions": ["jira.__", "jira.é"]},
+    {"name": "empty tool name is distinct", "grants": [{"mcp_name": "jira", "tools": [""]}, {"mcp_name": "jira_", "tools": [""]}], "collisions": []}
+  ],
+  "runtime_kinds": [
+    {"kind": "orca", "broker_supported": true},
+    {"kind": "lobster", "broker_supported": true},
+    {"kind": "pi-agent", "broker_supported": false},
+    {"kind": "kimi-cli", "broker_supported": false},
+    {"kind": "custody-null", "broker_supported": false},
+    {"kind": "openclaw", "broker_supported": false},
+    {"kind": "opencode", "broker_supported": false},
+    {"kind": "omo", "broker_supported": false},
+    {"kind": "Orca", "broker_supported": false},
+    {"kind": "", "broker_supported": false}
+  ]
+}

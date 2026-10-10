@@ -1,0 +1,138 @@
+pod_spec_version = "0.1"
+
+[pod]
+name = "code-reviewer"
+version = "0.1.0"
+authors = ["Konareef Demo Team"]
+license = "MIT"
+description = "Reviews a GitHub/GitLab PR or MR and emits a structured review with a portable proof receipt."
+homepage = "https://konareef.ai"
+tags = ["code-review", "demo", "github", "gitlab", "proof"]
+
+[runtime]
+kind = "lobster"
+version = "^0.1"
+
+[model]
+provider = "anthropic"
+name = "claude-sonnet-4-5"
+max_tokens = 4096
+temperature = 0.2
+
+[dependencies]
+system = ["git"]
+runtime = ["opencode"]
+secrets = ["GITHUB_TOKEN", "GITLAB_TOKEN"]
+
+[context]
+
+[[context.prompts]]
+role = "system"
+path = "./prompts/system.md"
+
+[[context.prompts]]
+role = "user_template"
+path = "./prompts/review-request.md"
+
+# The tool set the commitment covers. `fields_root` — and therefore any
+# proof or commission containment check over this pod — is derived from
+# these `[[context.tools]]` entries and from nothing else. The
+# `[directive].tools_allowed` list below is a publisher DECLARATION only:
+# no reef-core runtime enforces it today
+# (docs/design/tool-policy-semantics-adr.md, decision D1 = Option B). It
+# does NOT reach the commitment either: a pod that declares its tools only
+# there is refused at commission time.
+[[context.tools]]
+source = "git"
+
+[[context.tools]]
+source = "github"
+
+[[context.tools]]
+source = "gitlab"
+
+[[context.tools]]
+source = "filesystem"
+
+[inputs.pr_url]
+type = "string"
+required = true
+description = "GitHub pull request or GitLab merge request URL to review."
+
+[inputs.review_depth]
+type = "enum"
+required = false
+values = ["quick", "standard", "deep"]
+default = "standard"
+description = "Review depth. Demo default is standard; deep is for technical diligence."
+
+[inputs.publish_comment]
+type = "bool"
+required = false
+default = false
+description = "Whether the pod may post the review back to the PR/MR if credentials allow it. Demo default is false."
+
+[directive]
+template = "./prompts/review-request.md"
+max_iterations = 5
+# Declarations only (docs/design/tool-policy-semantics-adr.md, decision
+# D1 = Option B): no reef-core runtime reads or enforces tools_allowed /
+# tools_denied today. Not committed either — see [[context.tools]] above,
+# which is the list the commitment and the circuit actually bind.
+# tools_denied below names labels a human would filter on, not tool ids
+# from this pod's declared set above; `konareef pod validate` warns that
+# each one has no [[context.tools]] referent (tools-denied-unknown) — that
+# is expected for this example, not a defect to fix.
+tools_allowed = ["git", "github", "gitlab", "filesystem"]
+tools_denied = [
+  "shell_network_exfiltration",
+  "destructive_write",
+  "secrets_read",
+]
+
+[output]
+format = "markdown"
+
+[[output.success]]
+kind = "file_exists"
+path = "./output/review.md"
+
+[[output.success]]
+kind = "min_words"
+path = "./output/review.md"
+count = 120
+
+[[output.success]]
+kind = "contains_regex"
+path = "./output/review.md"
+pattern = "(?i)(verdict|summary|findings|recommendation)"
+
+[[output.failure]]
+kind = "timeout_seconds"
+value = 900
+
+[[output.failure]]
+kind = "budget_exhausted"
+
+[[output.deliverables]]
+path = "./output/review.md"
+description = "Structured PR/MR review suitable for attaching to the code host or demo proof bundle."
+
+[[output.deliverables]]
+path = "./output/review.json"
+description = "Machine-readable review summary for proof-bundle demos and future PR-comment automation."
+optional = true
+
+[budget]
+max_sats = 5000
+per_call_cap_sats = 1500
+daily_cap_sats = 50000
+
+[wallet]
+strategy = "fresh"
+
+[marketplace]
+listed = true
+price_model = "per_run"
+price_sats = 2500
+categories = ["developer-tools", "code-review", "demo"]

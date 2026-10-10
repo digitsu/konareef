@@ -1,0 +1,172 @@
+format = "konareef-sealed-grants/v1"
+salt = "0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0"
+
+[[grant]]
+host = "mcp01.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_01"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q01"
+mcp_tools = ["cnryc00k7q_t01"]
+
+[[grant]]
+host = "mcp02.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_02"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q02"
+mcp_tools = ["cnryc00k7q_t02"]
+
+[[grant]]
+host = "mcp03.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_03"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q03"
+mcp_tools = ["cnryc00k7q_t03"]
+
+[[grant]]
+host = "mcp04.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_04"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q04"
+mcp_tools = ["cnryc00k7q_t04"]
+
+[[grant]]
+host = "mcp05.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_05"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q05"
+mcp_tools = ["cnryc00k7q_t05"]
+
+[[grant]]
+host = "mcp06.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_06"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q06"
+mcp_tools = ["cnryc00k7q_t06"]
+
+[[grant]]
+host = "mcp07.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_07"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q07"
+mcp_tools = ["cnryc00k7q_t07"]
+
+[[grant]]
+host = "mcp08.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_08"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q08"
+mcp_tools = ["cnryc00k7q_t08"]
+
+[[grant]]
+host = "mcp09.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_09"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q09"
+mcp_tools = ["cnryc00k7q_t09"]
+
+[[grant]]
+host = "mcp10.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_10"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q10"
+mcp_tools = ["cnryc00k7q_t10"]
+
+[[grant]]
+host = "mcp11.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_11"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q11"
+mcp_tools = ["cnryc00k7q_t11"]
+
+[[grant]]
+host = "mcp12.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_12"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q12"
+mcp_tools = ["cnryc00k7q_t12"]
+
+[[grant]]
+host = "mcp13.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_13"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q13"
+mcp_tools = ["cnryc00k7q_t13"]
+
+[[grant]]
+host = "mcp14.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_14"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q14"
+mcp_tools = ["cnryc00k7q_t14"]
+
+[[grant]]
+host = "mcp15.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_15"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q15"
+mcp_tools = ["cnryc00k7q_t15"]
+
+[[grant]]
+host = "mcp16.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_16"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q16"
+mcp_tools = ["cnryc00k7q_t16"]
+
+[[grant]]
+host = "mcp17.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN_17"
+auth = "bearer"
+max_calls = 50
+protocol = "mcp"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q17"
+mcp_tools = ["cnryc00k7q_t17"]
