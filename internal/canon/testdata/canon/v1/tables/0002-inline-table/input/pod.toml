@@ -1,0 +1,4 @@
+config = { retries = 3, name = "demo" }
+
+[meta]
+publisher = { handle = "alice", region = "us" }

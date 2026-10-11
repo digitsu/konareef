@@ -1,0 +1,106 @@
+{
+ "_source": "paygate-zk scripts/poseidon_pallas.py (neptune 13.0.0); konareef-toml/v2 fields_root construction",
+ "_caps": {
+  "MAX_MODELS": 16,
+  "MAX_TOOLS": 32
+ },
+ "_amendment": "2026-07-05 digest-tool-ids (decision 2026-07-05-konareef-digest-tool-ids, PRD 1 §5.3): tools_root leaves now fold tool_id_digest = SHA-256(utf8(name)) instead of the name bytes. The one_each/three_five/full_caps fields_root values below were REGENERATED from the paygate-zk Rust oracle (crates/konareef-circuit/src/gadgets/fields_root.rs fields_root_ref_matches_golden_vectors) to re-sync after that change; empty is UNCHANGED (all-Z tools_root leaves are invariant to the leaf-preimage formula).",
+ "vectors": [
+  {
+   "name": "empty",
+   "models": [],
+   "tools": [],
+   "c_max": 0,
+   "r_init": "0000000000000000000000000000000000000000000000000000000000000000",
+   "fields_root": "25e80065232bae5c6accde72a53d4493cbe472d6e63cf851021fa4d25084270e"
+  },
+  {
+   "name": "one_each",
+   "models": [
+    "gpt-4o"
+   ],
+   "tools": [
+    "search"
+   ],
+   "c_max": 1000,
+   "r_init": "0700000000000000000000000000000000000000000000000000000000000000",
+   "fields_root": "a0e9701b7930e8f54c38d336a5697f397d7cb8b0f382c1402012022e58b7d80f"
+  },
+  {
+   "name": "three_five",
+   "models": [
+    "claude-opus-4-8",
+    "gpt-4o",
+    "llama-3"
+   ],
+   "tools": [
+    "search",
+    "read",
+    "write",
+    "exec",
+    "fetch"
+   ],
+   "c_max": 50000,
+   "r_init": "0000000021eb468cdda89409fc98462200000000000000000000000000000040",
+   "fields_root": "a3950917487ae070394f5fc45fec389124c762d7379e59421017110c5769d83d"
+  },
+  {
+   "name": "full_caps",
+   "models": [
+    "m00",
+    "m01",
+    "m02",
+    "m03",
+    "m04",
+    "m05",
+    "m06",
+    "m07",
+    "m08",
+    "m09",
+    "m10",
+    "m11",
+    "m12",
+    "m13",
+    "m14",
+    "m15"
+   ],
+   "tools": [
+    "t00",
+    "t01",
+    "t02",
+    "t03",
+    "t04",
+    "t05",
+    "t06",
+    "t07",
+    "t08",
+    "t09",
+    "t10",
+    "t11",
+    "t12",
+    "t13",
+    "t14",
+    "t15",
+    "t16",
+    "t17",
+    "t18",
+    "t19",
+    "t20",
+    "t21",
+    "t22",
+    "t23",
+    "t24",
+    "t25",
+    "t26",
+    "t27",
+    "t28",
+    "t29",
+    "t30",
+    "t31"
+   ],
+   "c_max": 9223372036854775808,
+   "r_init": "0700000000000000000000000000000000000000000000000000000000000000",
+   "fields_root": "ad5a6c40872b640c567a5e1282cb50cce8cff6593757cc3648354ae28a70f30c"
+  }
+ ]
+}

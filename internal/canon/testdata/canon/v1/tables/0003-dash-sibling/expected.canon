@@ -1,0 +1,8 @@
+#!konareef-toml/v1
+[ctx]
+z = 1
+[ctx-x]
+y = 2
+[ctx.a]
+x = 3
+[_files]

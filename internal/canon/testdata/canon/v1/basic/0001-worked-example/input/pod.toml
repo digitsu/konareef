@@ -1,0 +1,16 @@
+# My research bot
+[pod]
+name = "research-bot"     # main identifier
+version = "1.0.0"
+runtime  = "orca"
+
+[directive]
+task = "Research the topic"
+model = "anthropic/claude-sonnet-4-6"
+max_iterations = 1_0
+temperature = 7e-1
+tools = ["github", "web-search"]
+
+[budget]
+per_invocation = 5_0
+cap = 1_000

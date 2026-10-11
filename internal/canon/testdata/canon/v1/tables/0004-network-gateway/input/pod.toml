@@ -1,0 +1,26 @@
+pod_spec_version = "0.1"
+
+[pod]
+name = "gateway-vector"
+version = "0.1.0"
+
+[runtime]
+kind = "lobster"
+
+[dependencies]
+secrets = ["ELEVENLABS_API_KEY"]
+
+[network]
+egress = ["cdn.example.com"]
+
+[[network.gateway]]
+host = "api.elevenlabs.io"
+secret = "ELEVENLABS_API_KEY"
+auth = "header:xi-api-key"
+max_calls = 3
+
+[directive]
+task = "Speak."
+
+[budget]
+max_sats = 5000

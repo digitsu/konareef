@@ -1,0 +1,7 @@
+{
+  "error": {
+    "kind": "mcp_grant_host_also_declared_egress",
+    "hosts": ["mcp.example.com"],
+    "message": "these hosts are brokered MCP grants and are also reachable through [network].egress; a brokered host is reached only through the broker, so remove it from the egress list"
+  }
+}

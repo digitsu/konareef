@@ -1,0 +1,15 @@
+Copied from reef-core commit dda07dd6b8cf9bc1c4e107383f9753e54294a921 (main, after the
+fixture fix 41f96217 "give the unavailable golden snapshot real leaves"), directory
+test/support/fixtures/openshell_custody/ (the US-109 and US-110 custody
+blobs and konareef-bundle/v1 bundles). The .json and .txt files are byte
+copies. README.md is a copy with the reef-core document paths replaced by
+document names (the public mirror refuses those paths).
+The W20 files (w20.custody.txt, w20.bundle.json, w20.public.bundle.json,
+w20_cut.custody.txt, w20_cut.bundle.json; US-205) and README.md are copied
+from reef-core commit efde91d9888af0b66e20b6641ccab9d41cf06291 (main, the
+merge of MR !355). The phase-2 files are the same at that commit.
+The reef-core#155 files (w20_admitted.custody.txt, w20_admitted.bundle.json,
+w20_admitted_rev1.custody.txt, w20_admitted_rev1.bundle.json) and the README.md section on them are copied from
+reef-core branch fix/155-rule3-admitted-hash (MR to be merged after !357). The
+other files are the same at that branch.
+Copy all files again after the bundles change in reef-core.

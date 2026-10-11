@@ -1,0 +1,21 @@
+# Go build artifacts
+/konareef
+/konareef-*
+/floatparity
+*.exe
+*.test
+*.out
+dist/
+
+# IDE/editor
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Env/local state
+.env
+.env.local
+wallet.db
+wallet.db-shm
+wallet.db-wal

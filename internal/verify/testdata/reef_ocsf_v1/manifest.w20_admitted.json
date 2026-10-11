@@ -1,0 +1,19 @@
+{
+  "rule": "reef-ocsf/v1",
+  "vectors": [
+    {
+      "name": "w20_admitted_rev2",
+      "file": "w20_admitted_rev2.records",
+      "record_count": 9,
+      "root": "198198cbaefc1b2777f207863d81fd22e92a2079af268c6b293ca18e5e6ac660",
+      "description": "a W20 run at revision 2: CONFIG:LOADED [version:2] has the gateway's admitted hash (revision 2 plus the run provider), not policy_enriched_hash"
+    },
+    {
+      "name": "w20_admitted_rev1",
+      "file": "w20_admitted_rev1.records",
+      "record_count": 9,
+      "root": "aac9c5b0f593875c6e9e058652baf6a7933b73d3fe0ba13492dc9953d03b6305",
+      "description": "a W20 run that ends at revision 1 (no enrichment): CONFIG:LOADED [version:1] has the gateway's admitted hash (revision 1 plus the run provider); policy_enriched_hash is empty"
+    }
+  ]
+}

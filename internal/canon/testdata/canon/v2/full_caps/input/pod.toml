@@ -1,0 +1,12 @@
+# The canon-layer cap test: MaxModels=16 and MaxTools=32 (fieldsroot.go),
+# exercised at the cap boundary. pod.toml itself only ever declares ONE
+# [model] table (the v0.1 schema has no [[model]] array), so the 16
+# models/32 tools here are supplied directly via params.json rather than
+# derived from this document — this vector pins canon.FieldsRoot's own
+# cap machinery, independent of what internal/publish.DeriveCommitParams
+# can produce from a real pod today.
+[pod]
+name = "full-caps"
+
+[budget]
+max_sats = 200000

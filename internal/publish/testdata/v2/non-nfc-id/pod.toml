@@ -1,0 +1,15 @@
+pod_spec_version = "0.1"
+
+[pod]
+name = "non-nfc-id"
+
+[model]
+provider = "openai"
+name = "gpt-4o"
+
+[budget]
+max_sats = 1
+
+# "cafe" + U+0301 COMBINING ACUTE ACCENT: NFD, not NFC.
+[[context.tools]]
+source = "café"

@@ -1,0 +1,9 @@
+[f]
+a_exp_pos = 1e2
+b_exp_neg = 1.5e-1
+c_seven = 7e-1
+d_neg_zero = -0.0
+e_zero = 0.0
+f_max = 1.0e6
+g_repeating = 0.333333
+h_already_decimal = 42.5

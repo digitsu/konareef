@@ -1,0 +1,7 @@
+# A publisher hand-authoring [_commit] must be rejected (RESERVED_KEY_COMMIT):
+# that section is computed by the canonicalizer, never accepted as input.
+[pod]
+name = "reserved-commit"
+
+[_commit]
+fields_root = "poseidon:0000000000000000000000000000000000000000000000000000000000000000"

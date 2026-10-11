@@ -1,0 +1,14 @@
+{
+  "vector_id": "idempotency-key-canonical",
+  "inputs": {
+    "circuit_id": "konareef-pod-step-v1",
+    "step_index": 0,
+    "h_p_hex": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+  },
+  "expected": {
+    "circuit_id_bytes_hex": "6b6f6e61726565662d706f642d737465702d7631",
+    "preimage_hex": "146b6f6e61726565662d706f642d737465702d763100000000000000009f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    "idempotency_key_hex": "14e7379c712f0c01d1e4445b93946ae285093301cd5985fce44ae52c7b54f1f7"
+  },
+  "notes": "circuit_id is 20 bytes UTF-8 NFC; ULEB128(20) = 0x14; step_index 0 = 8 zero bytes; h_p is SHA-256('test'). Idempotency-Key value computed and verified against this preimage on 2026-06-06."
+}

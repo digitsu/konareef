@@ -1,0 +1,12 @@
+format = "konareef-sealed-grants/v1"
+salt = "0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0"
+
+[[grant]]
+host = "mcp.cnry-c00k7q.example"
+secret = "CNRY_C00K7Q_TOKEN"
+auth = "bearer"
+max_calls = 50
+protocol = "http"
+mcp_path = "/cnry-c00k7q/mcp"
+mcp_name = "cnryc00k7q"
+mcp_tools = ["cnryc00k7q_search"]

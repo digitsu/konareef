@@ -1,0 +1,22 @@
+{
+  "service": "paygate-zk",
+  "version": "v1",
+  "operations": ["nova-fold", "spartan-compress", "groth16-wrap"],
+  "circuits": {
+    "konareef-pod-step-v1": {
+      "vkey_sha256": "0101010101010101010101010101010101010101010101010101010101010101",
+      "vkey_url": "https://paygate-zk.example.test/.well-known/circuits/konareef-pod-step-v1/vkey",
+      "pricing": {
+        "nova-fold":        {"compute_usd": 0.0001, "retail_usd": 0.001},
+        "spartan-compress": {"compute_usd": 0.005,  "retail_usd": 0.05},
+        "groth16-wrap":     {"compute_usd": 0.02,   "retail_usd": 0.20, "available_after": "v1.5"}
+      },
+      "input_caps": {"manifest_bytes": 2048, "prompt_bytes": 1024, "response_bytes": 1024, "t_log_max": 16, "touched_memory_leaves_max": 64, "spec_reference": "PRD 1 § 7"},
+      "deprecated_after": null
+    }
+  },
+  "margin_multiplier": 10,
+  "schedule_revision": 2,
+  "schedule_effective_after": "2026-01-01T00:00:00Z",
+  "signature": {"scheme": "BRC-31", "service_pubkey": "deadbeef", "sig": "feedface"}
+}

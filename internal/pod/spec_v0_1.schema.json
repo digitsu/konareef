@@ -1,0 +1,500 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://konareef.ai/schemas/pod-toml/v0.1.json",
+  "title": "Pod Definition (pod.toml) — v0.1",
+  "description": "Schema for konareef pod.toml files. The authoritative copy lives in reef-core; the konareef TUI vendors it for `konareef pod validate`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pod_spec_version", "pod", "runtime", "directive"],
+  "properties": {
+    "pod_spec_version": {
+      "description": "Version of this spec. v0.1 tolerates breaking changes; v1.0 will be the stability marker.",
+      "const": "0.1"
+    },
+    "pod":          { "$ref": "#/definitions/pod" },
+    "runtime":      { "$ref": "#/definitions/runtime" },
+    "model":        { "$ref": "#/definitions/model" },
+    "hardware":     { "$ref": "#/definitions/hardware" },
+    "dependencies": { "$ref": "#/definitions/dependencies" },
+    "network":      { "$ref": "#/definitions/network" },
+    "context":      { "$ref": "#/definitions/context" },
+    "inputs":       { "$ref": "#/definitions/inputs" },
+    "directive":    { "$ref": "#/definitions/directive" },
+    "output":       { "$ref": "#/definitions/output" },
+    "budget":       { "$ref": "#/definitions/budget" },
+    "wallet":       { "$ref": "#/definitions/wallet" },
+    "hooks":        { "$ref": "#/definitions/hooks" },
+    "marketplace":  { "$ref": "#/definitions/marketplace" }
+  },
+  "definitions": {
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "description": "MAJOR.MINOR.PATCH per semver.org."
+    },
+    "semver_constraint": {
+      "type": "string",
+      "pattern": "^[\\^~=<>0-9*].*",
+      "description": "Cargo-style constraint (e.g. ^0.4, ~1.2.0, >=0.3, *)."
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "byte_size": {
+      "type": "string",
+      "pattern": "^[0-9]+(?:\\.[0-9]+)?\\s*(KiB|MiB|GiB|TiB)$",
+      "description": "Binary byte size (e.g. '4GiB')."
+    },
+    "relative_path": {
+      "type": "string",
+      "pattern": "^\\./(?:(?:\\.?(?:[^/.][^/]*)?|\\.\\.[^/]+)/)*(?:\\.?(?:[^/.][^/]*)?|\\.\\.[^/]+)$",
+      "description": "v0.1 supports only repo-relative paths starting with './'. No segment may be '..', so a path cannot name a file outside the pod directory (reef-core#58)."
+    },
+
+    "pod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name":        { "$ref": "#/definitions/identifier" },
+        "version":     { "$ref": "#/definitions/semver" },
+        "authors":     { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "license":     { "type": "string" },
+        "description": { "type": "string" },
+        "homepage":    { "type": "string", "format": "uri" },
+        "tags":        { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "lineage_id":  {
+          "type": "string",
+          "description": "16-byte per-lineage salt-lookup key, encoded as 32-char lowercase hex.",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "visibility":  {
+          "type": "string",
+          "enum": ["open", "closed"],
+          "description": "open (default, absent) = body published in the clear; closed = body encrypted, runs only on konareef infrastructure"
+        }
+      }
+    },
+
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind":    { "$ref": "#/definitions/identifier", "description": "Name of a registered runtime (orca, lobster, pi-agent, kimi-cli, ...)." },
+        "version": { "$ref": "#/definitions/semver_constraint" },
+        "execution_class": {
+          "type": "string",
+          "enum": ["cloud", "local-mount"],
+          "description": "cloud = platform-run; local-mount = requires the commissioner's machine for drive mounting"
+        }
+      }
+    },
+
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "name"],
+      "properties": {
+        "provider":      { "type": "string", "minLength": 1 },
+        "name":          { "type": "string", "minLength": 1 },
+        "max_tokens":    { "type": "integer", "minimum": 1 },
+        "temperature":   { "type": "number", "minimum": 0, "maximum": 2 },
+        "provider_opts": { "type": "object", "additionalProperties": true }
+      }
+    },
+
+    "hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cpu_cores": { "type": "integer", "minimum": 1 },
+        "memory":    { "$ref": "#/definitions/byte_size" },
+        "disk":      { "$ref": "#/definitions/byte_size" },
+        "gpu":       { "$ref": "#/definitions/hardware_gpu" }
+      }
+    },
+
+    "hardware_gpu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "count", "vram_gib"],
+      "properties": {
+        "kind":     { "type": "string", "enum": ["nvidia", "amd", "apple"] },
+        "count":    { "type": "integer", "minimum": 1 },
+        "vram_gib": { "type": "integer", "minimum": 1 },
+        "model":    { "type": "string" }
+      }
+    },
+
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "system":  { "type": "array", "items": { "type": "string" } },
+        "runtime": { "type": "array", "items": { "type": "string" } },
+        "secrets": {
+          "type": "array",
+          "description": "Names only — values come from the reef-core vault at spawn time.",
+          "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+          "uniqueItems": true
+        }
+      }
+    },
+
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "egress": {
+          "type": "array",
+          "description": "Hosts this pod may reach, each as 'host' or 'host:port'. Port defaults to 443. A leading '*.' matches one or more leading labels and does not match the bare suffix, so a pod needing both declares both. An IPv6 address is written bracketed, the way a URL authority spells it: '[::1]' or '[2001:db8::1]:8443'; brackets are required even without a port, and a wildcard is not accepted on an address. An absent [network] table is an empty allowlist, not an absent restriction.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?:(\\*\\.)?[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*|\\[[0-9A-Fa-f.]*:[0-9A-Fa-f:.]*\\])(:[0-9]{1,5})?$"
+          },
+          "uniqueItems": true
+        },
+        "gateway": {
+          "type": "array",
+          "description": "Paid hosts the pod reaches through the reef-core egress gateway. Each entry binds one author secret to one host and caps the calls per run. The pod calls $REEF_GATEWAY_URL/<host>/<path>; the gateway attaches the secret. See docs/reference/pod-toml-network.md. An entry with protocol = 'mcp' is a brokered MCP grant instead.",
+          "items": { "$ref": "#/definitions/network_gateway" }
+        },
+        "sealed_grants": {
+          "type": "string",
+          "enum": ["konareef-sealed-grants/v1"],
+          "description": "Closed pods only. Names the carrier version of the sealed brokered-MCP grants file sealed/grants.toml inside the encrypted body. It carries no count, digest or name. A head with this key must carry no [[network.gateway]] entry with protocol = 'mcp'. See the sealed closed-pod grants design (MCP-C00, reef-core#42)."
+        }
+      }
+    },
+
+    "network_gateway": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["host", "secret", "auth", "max_calls"],
+      "properties": {
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "description": "One paid host as 'host' or 'host:port'. Port defaults to 443. Exact match only: a wildcard is refused by the validator because the gateway attaches a secret to every request it forwards here.",
+          "pattern": "^(?:(\\*\\.)?[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*|\\[[0-9A-Fa-f.]*:[0-9A-Fa-f:.]*\\])(:[0-9]{1,5})?$"
+        },
+        "secret": {
+          "type": "string",
+          "description": "A name from [dependencies].secrets. The gateway attaches this secret; the pod process never receives it.",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "auth": {
+          "type": "string",
+          "description": "How the gateway attaches the secret: 'bearer' (Authorization: Bearer <secret>), 'header:<name>' (<name>: <secret>), or 'query:<param>' (?<param>=<secret>). The gateway overwrites any client-supplied value of the same header or parameter.",
+          "pattern": "^(bearer|header:[A-Za-z0-9-]+|query:[A-Za-z0-9_.-]+)$"
+        },
+        "max_calls":       { "type": "integer", "minimum": 1, "description": "Per-run call cap, enforced exactly by the gateway before it forwards." },
+        "max_units":       { "type": "integer", "minimum": 1, "description": "Per-run cap in provider units. Needs a platform adapter for the host." },
+        "daily_max_units": { "type": "integer", "minimum": 1, "description": "Per-pod rolling 24-hour cap in provider units across all runs. Needs a platform adapter for the host." },
+        "protocol": {
+          "type": "string",
+          "enum": ["http", "mcp"],
+          "default": "http",
+          "description": "How reef-core reaches this host. 'http' (the default): the pod calls $REEF_GATEWAY_URL/<host>/<path>. 'mcp': a brokered MCP grant. reef-core connects to the upstream MCP server and publishes the allowed tools on its own MCP endpoint as <mcp_name>.<tool>. The pod cannot reach an 'mcp' host through the HTTP gateway."
+        },
+        "mcp_path": {
+          "type": "string",
+          "pattern": "^/[^\\s?#]*$",
+          "description": "The upstream MCP endpoint path. Only with protocol = 'mcp'. Defaults to '/mcp'."
+        },
+        "mcp_name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,31}$",
+          "description": "The tool namespace. Only with protocol = 'mcp', and required there. The names openbrain, proofs, budget, and plan are reserved, and two grants must not share one name."
+        },
+        "mcp_tools": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.-]{1,128}$"
+          },
+          "description": "The closed list of upstream tools this pod may call. Only with protocol = 'mcp', and required there. The broker hides and refuses every tool not in this list."
+        }
+      },
+      "if": {
+        "required": ["protocol"],
+        "properties": { "protocol": { "const": "mcp" } }
+      },
+      "then": {
+        "required": ["mcp_name", "mcp_tools"]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            { "required": ["mcp_path"] },
+            { "required": ["mcp_name"] },
+            { "required": ["mcp_tools"] }
+          ]
+        }
+      }
+    },
+
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "memory":  { "type": "array", "items": { "$ref": "#/definitions/context_memory" } },
+        "skills":  { "type": "array", "items": { "$ref": "#/definitions/context_skill" } },
+        "tools":   { "type": "array", "items": { "$ref": "#/definitions/context_tool" } },
+        "prompts": { "type": "array", "items": { "$ref": "#/definitions/context_prompt" } }
+      }
+    },
+
+    "context_memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind":     { "type": "string", "enum": ["openbrain", "file", "http", "inline"] },
+        "snapshot": { "type": "string" },
+        "path":     { "$ref": "#/definitions/relative_path" },
+        "url":      { "type": "string", "format": "uri" },
+        "content":  { "type": "string" }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "openbrain" } } }, "then": { "required": ["snapshot"] } },
+        { "if": { "properties": { "kind": { "const": "file"      } } }, "then": { "required": ["path"]     } },
+        { "if": { "properties": { "kind": { "const": "http"      } } }, "then": { "required": ["url"]      } },
+        { "if": { "properties": { "kind": { "const": "inline"    } } }, "then": { "required": ["content"]  } }
+      ]
+    },
+
+    "context_source": {
+      "type": "string",
+      "description": "Source ref. v0.1 supports only './relative/path'. Future: 'konareef/X#Y', 'github:owner/repo#path'.",
+      "minLength": 1
+    },
+
+    "context_skill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source":  { "$ref": "#/definitions/context_source" },
+        "version": { "$ref": "#/definitions/semver_constraint" }
+      }
+    },
+
+    "context_tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source": { "$ref": "#/definitions/context_source" },
+        "config": { "type": "object", "additionalProperties": true }
+      }
+    },
+
+    "context_prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "path"],
+      "properties": {
+        "role": { "type": "string", "enum": ["system", "user_template", "assistant_seed"] },
+        "path": { "$ref": "#/definitions/relative_path" }
+      }
+    },
+
+    "inputs": {
+      "type": "object",
+      "description": "Map of input name → input descriptor.",
+      "propertyNames": { "$ref": "#/definitions/identifier" },
+      "additionalProperties": { "$ref": "#/definitions/input_def" }
+    },
+
+    "input_def": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type":        { "type": "string", "enum": ["string", "int", "float", "bool", "enum"] },
+        "required":    { "type": "boolean" },
+        "description": { "type": "string" },
+        "default":     {},
+        "pattern":     { "type": "string" },
+        "min":         { "type": "number" },
+        "max":         { "type": "number" },
+        "values":      { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true }
+      },
+      "$comment": "Each branch fixes the type of `default` AND names the constraint keywords that are legal for that input type. The second half matters: Pod.Spec.InputResolver.validate/3 reads `pattern` only for a string, `min`/`max` only for an int or a float, and `values` only for an enum, so a `pattern` on an int was accepted here and then silently ignored at run time. konareef's vendored copy already refused those combinations (2020-12 `oneOf` + `unevaluatedProperties`), which made the CLI stricter than the server; this is the draft-07 spelling of the same rule. `min`/`max` narrow to integer under `type = \"int\"` for the same reason.",
+      "allOf": [
+        { "if":   { "required": ["type"], "properties": { "type": { "const": "string" } } },
+          "then": { "properties": { "default": { "type": "string" } },
+                    "not": { "anyOf": [{ "required": ["min"] }, { "required": ["max"] }, { "required": ["values"] }] } } },
+        { "if":   { "required": ["type"], "properties": { "type": { "const": "int" } } },
+          "then": { "properties": { "default": { "type": "integer" }, "min": { "type": "integer" }, "max": { "type": "integer" } },
+                    "not": { "anyOf": [{ "required": ["pattern"] }, { "required": ["values"] }] } } },
+        { "if":   { "required": ["type"], "properties": { "type": { "const": "float" } } },
+          "then": { "properties": { "default": { "type": "number" } },
+                    "not": { "anyOf": [{ "required": ["pattern"] }, { "required": ["values"] }] } } },
+        { "if":   { "required": ["type"], "properties": { "type": { "const": "bool" } } },
+          "then": { "properties": { "default": { "type": "boolean" } },
+                    "not": { "anyOf": [{ "required": ["pattern"] }, { "required": ["min"] }, { "required": ["max"] }, { "required": ["values"] }] } } },
+        { "if":   { "required": ["type"], "properties": { "type": { "const": "enum" } } },
+          "then": { "required": ["values"], "properties": { "default": { "type": "string" } },
+                    "not": { "anyOf": [{ "required": ["pattern"] }, { "required": ["min"] }, { "required": ["max"] }] } } }
+      ]
+    },
+
+    "directive": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "task":           { "type": "string", "minLength": 1, "description": "Inline directive. Mutually exclusive with `template`." },
+        "template":       { "$ref": "#/definitions/relative_path", "description": "Path to a Mustache-templated directive file." },
+        "max_iterations": { "type": "integer", "minimum": 1 },
+        "tools_allowed":  { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "tools_denied":   { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      },
+      "oneOf": [
+        { "required": ["task"]     },
+        { "required": ["template"] }
+      ]
+    },
+
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format":       { "type": "string" },
+        "success":      { "type": "array", "items": { "$ref": "#/definitions/predicate" } },
+        "failure":      { "type": "array", "items": { "$ref": "#/definitions/predicate" } },
+        "deliverables": { "type": "array", "items": { "$ref": "#/definitions/deliverable" } }
+      }
+    },
+
+    "predicate": {
+      "type": "object",
+      "required": ["kind"],
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "file_exists" },
+            "path": { "$ref": "#/definitions/relative_path" }
+          },
+          "required": ["kind", "path"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind":  { "const": "min_words" },
+            "path":  { "$ref": "#/definitions/relative_path" },
+            "count": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["kind", "path", "count"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind":    { "const": "contains_regex" },
+            "path":    { "$ref": "#/definitions/relative_path" },
+            "pattern": { "type": "string" }
+          },
+          "required": ["kind", "path", "pattern"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind":  { "const": "timeout_seconds" },
+            "value": { "type": "integer", "minimum": 1 }
+          },
+          "required": ["kind", "value"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "budget_exhausted" }
+          },
+          "required": ["kind"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "const": "tool_called" },
+            "tool": { "type": "string", "minLength": 1 }
+          },
+          "required": ["kind", "tool"]
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind":   { "const": "custom_script" },
+            "script": { "$ref": "#/definitions/relative_path" }
+          },
+          "required": ["kind", "script"]
+        }
+      ]
+    },
+
+    "deliverable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path":        { "$ref": "#/definitions/relative_path" },
+        "description": { "type": "string" },
+        "optional":    { "type": "boolean" }
+      }
+    },
+
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_sats":          { "type": "integer", "minimum": 0 },
+        "per_call_cap_sats": { "type": "integer", "minimum": 0 },
+        "daily_cap_sats":    { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "wallet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy"],
+      "properties": {
+        "strategy": { "type": "string", "enum": ["fresh", "reuse", "pooled"] },
+        "reuse":    { "type": "string", "description": "Required when strategy = reuse." }
+      },
+      "if":   { "properties": { "strategy": { "const": "reuse" } } },
+      "then": { "required": ["reuse"] }
+    },
+
+    "hooks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pre_spawn":  { "$ref": "#/definitions/relative_path" },
+        "post_spawn": { "$ref": "#/definitions/relative_path" },
+        "on_success": { "$ref": "#/definitions/relative_path" },
+        "on_failure": { "$ref": "#/definitions/relative_path" }
+      }
+    },
+
+    "marketplace": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "listed":      { "type": "boolean" },
+        "price_model": { "type": "string", "enum": ["per_run", "subscription", "free"] },
+        "price_sats":  { "type": "integer", "minimum": 0 },
+        "preview_url": { "type": "string", "format": "uri" },
+        "icon":        { "$ref": "#/definitions/relative_path" },
+        "screenshots": { "type": "array", "items": { "$ref": "#/definitions/relative_path" } },
+        "categories":  { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    }
+  }
+}

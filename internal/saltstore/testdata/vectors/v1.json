@@ -1,0 +1,80 @@
+{
+  "vectors": [
+    {
+      "id": "saltstore-blob-roundtrip-canonical",
+      "description": "Fixed passphrase + test KDF params + fixed kdf_salt + fixed nonce + fixed (lineage_id, salt) → byte-exact wire blob. Decryption reproduces the input bytes.",
+      "inputs": {
+        "passphrase":   "konareef-test-passphrase",
+        "lineage_id":   "0d8f4a2c3e1b5a76d9c8f2a1b3e4d5f6",
+        "salt":         "a5b6c7d8e9f0011223344556677889aabbccddeeff0011223344556677889999",
+        "kdf_salt":     "00112233445566778899aabbccddeeff",
+        "nonce":        "0123456789abcdef01234567",
+        "iterations":   2,
+        "memory_kib":   16384,
+        "parallelism":  1,
+        "created_at":   1717977600
+      },
+      "expected": {
+        "magic":              "4b5253414c543031",
+        "version":             "01",
+        "kdf_params":          "020000000040000001000000",
+        "kdf_salt":             "00112233445566778899aabbccddeeff",
+        "nonce":                "0123456789abcdef01234567",
+        "derived_key":          "d31c5e857117452e78a349da3b4c3abdda2965e982479995c1879e72bca7cd66",
+        "aad":                  "4b5253414c54303101",
+        "plaintext_cbor":       "a267656e747269657381a26473616c745820a5b6c7d8e9f0011223344556677889aabbccddeeff00112233445566778899996a6c696e656167655f6964500d8f4a2c3e1b5a76d9c8f2a1b3e4d5f66a637265617465645f61741a66664200",
+        "ciphertext_and_tag":   "8024f36010ea1bca1f5b292a47a9924f51f7504df4cae75da00111ed2d36bd288b1d2c01edb4767eb91be1c88ed5234995fee5c5721c010d5f19c99bcb973a3781739bfafea783f53ddb8ff2a599980f2726280180ea4f0187fe53f64691d1b4af38e852abad619ffab3d06c31c2",
+        "final_blob":           "4b5253414c5430310102000000004000000100000000112233445566778899aabbccddeeff0123456789abcdef012345678024f36010ea1bca1f5b292a47a9924f51f7504df4cae75da00111ed2d36bd288b1d2c01edb4767eb91be1c88ed5234995fee5c5721c010d5f19c99bcb973a3781739bfafea783f53ddb8ff2a599980f2726280180ea4f0187fe53f64691d1b4af38e852abad619ffab3d06c31c2"
+      },
+      "notes": "Test KDF params (iterations=2, memory_kib=16384, parallelism=1) are CI-only. Production defaults are iterations=4, memory_kib=131072, parallelism=1 — recorded for documentation only, NOT used in this vector. The vector salt input is a 64-char lowercase-hex string (decoded as the literal 32-byte salt by the Go runner via hex.DecodeString)."
+    },
+    {
+      "id": "saltstore-blob-wrong-passphrase-reject",
+      "description": "Same final_blob as roundtrip-canonical, wrong passphrase → ErrSaltBlobDecrypt.",
+      "inputs": {
+        "final_blob": "4b5253414c5430310102000000004000000100000000112233445566778899aabbccddeeff0123456789abcdef012345678024f36010ea1bca1f5b292a47a9924f51f7504df4cae75da00111ed2d36bd288b1d2c01edb4767eb91be1c88ed5234995fee5c5721c010d5f19c99bcb973a3781739bfafea783f53ddb8ff2a599980f2726280180ea4f0187fe53f64691d1b4af38e852abad619ffab3d06c31c2",
+        "passphrase": "totally-wrong-passphrase"
+      },
+      "expected": { "error_code": "ERR_SALT_BLOB_DECRYPT" }
+    },
+    {
+      "id": "saltstore-blob-tampered-rejects",
+      "description": "final_blob from roundtrip-canonical with byte at offset 50 (first ciphertext byte) XOR 0xFF → ErrSaltBlobDecrypt (GCM tag catches mutation).",
+      "inputs": {
+        "final_blob_tampered_offset": 50,
+        "passphrase": "konareef-test-passphrase"
+      },
+      "expected": { "error_code": "ERR_SALT_BLOB_DECRYPT" }
+    },
+    {
+      "id": "saltstore-resolver-fallthrough-decision",
+      "description": "Decision table (kErr=err, eErr=ok, pErr=ok) → resolver picks encrypted-file; log line contains 'skipping backend keychain'.",
+      "inputs": {
+        "k_available_err": "no keyring",
+        "e_available_err": null,
+        "p_available_err": null
+      },
+      "expected": {
+        "picked_name":    "encrypted-file",
+        "log_substrings": ["skipping backend keychain", "using backend encrypted-file"]
+      }
+    },
+    {
+      "id": "saltstore-multi-lineage-roundtrip",
+      "description": "Blob containing 3 distinct (lineage_id, salt) pairs → decrypt → all 3 pairs byte-identical, entry order preserved.",
+      "inputs": {
+        "passphrase":  "konareef-test-passphrase",
+        "entries": [
+          { "lineage_id": "11111111111111111111111111111111", "salt": "aa" },
+          { "lineage_id": "22222222222222222222222222222222", "salt": "bb" },
+          { "lineage_id": "33333333333333333333333333333333", "salt": "cc" }
+        ]
+      },
+      "expected": {
+        "entry_count": 3,
+        "order_preserved": true
+      },
+      "notes": "Salt byte is replicated to fill 32 bytes (aa…aa, bb…bb, cc…cc) so the Go runner can construct deterministic test entries without long inline hex strings."
+    }
+  ]
+}

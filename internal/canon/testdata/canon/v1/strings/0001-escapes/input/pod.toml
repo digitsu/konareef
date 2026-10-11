@@ -1,0 +1,9 @@
+[s]
+a_quote = "he said \"hi\""
+b_backslash = "a\\b"
+c_tab = "x\ty"
+d_newline = "line1\nline2"
+e_control = "bell\U00000007done"
+f_unicode = "café — 日本語"
+g_emoji = "rocket \U0001F680"
+h_plain = "plain ascii text"

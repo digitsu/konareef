@@ -1,0 +1,52 @@
+pod_spec_version = "0.1"
+
+# SYNTHETIC FIXTURE — not an authorized real pod. Added 2026-09-24 (IB-09,
+# konareef#24) to give the closure corpus a named witness for the
+# declaration-only contract the tool-policy semantics ADR settled (TA-00
+# konareef#18, D1 = Option B; docs/design/tool-policy-semantics-adr.md).
+#
+# This manifest declares [directive].tools_denied naming a tool
+# ("secrets_read") that has NO [[context.tools]] entry — an unknown deny
+# referent (ADR decision D5: "warn" under Option B, never refuse). Neither
+# konareef's real example pods nor the other corpus fixtures exercise a
+# tools_denied list at all, so nothing before this fixture proved that
+# commission.FromSpec derives a full envelope for a manifest carrying one.
+#
+# TestClosureCorpus asserts this manifest derives cleanly (no refusal) and
+# that its envelope's Tools set is exactly {bash} — i.e. tools_denied plays
+# no role in the derived envelope, because no runtime enforces it and it is
+# not an envelope dimension (docs/design/tool-policy-semantics-adr.md §5).
+# Do not "fix" this manifest to remove the unknown referent; that is the
+# point of the fixture, not a defect in it.
+[pod]
+name = "synthetic-declaration-only-denylist"
+version = "0.0.1-synthetic"
+description = "Synthetic-only fixture proving tools_denied is inert at commission-derivation time. Never published, never run."
+authors = ["IB-09 (evidence corpus, 2026-09-24)"]
+license = "Apache-2.0"
+tags = ["synthetic", "closure-corpus", "ib-09"]
+lineage_id = "00000000000000000000000000000ib10"
+
+[runtime]
+kind = "lobster"
+version = "^0.1"
+
+[model]
+provider = "anthropic"
+name = "claude-sonnet-4-5"
+
+[[context.tools]]
+source = "bash"
+
+[directive]
+template = "./prompts/system.md"
+max_iterations = 4
+# Declaration only (D1 = Option B): no reef-core runtime reads or enforces
+# tools_denied. "secrets_read" names no [[context.tools]] entry above, which
+# is the unknown-deny-referent shape ADR decision D5 treats as a warning
+# under Option B, not a refusal — see internal/pod/toolpolicy.go
+# (ToolPolicyDenyUnknown).
+tools_denied = ["secrets_read"]
+
+[budget]
+max_sats = 1000

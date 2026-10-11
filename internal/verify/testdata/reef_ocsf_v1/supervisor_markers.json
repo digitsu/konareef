@@ -1,0 +1,24 @@
+{
+  "rule": "reef-ocsf/v1",
+  "about": "Supervisor marker rule of design 4.1 item 6 (fail closed, 2026-10-09). A GATEWAY record whose msg starts with prefix and is not in known_good is a marker: possible_loss when seq is null or seq <= drain_end_seq, else informational. reef-core and konareef test against this file.",
+  "prefix": "supervisor session:",
+  "known_good": [
+    "supervisor session: accepted",
+    "supervisor session: relay opened successfully"
+  ],
+  "cases": [
+    {"class": "GATEWAY", "msg": "supervisor session: accepted", "seq": 2, "drain_end_seq": 3, "marker": null},
+    {"class": "GATEWAY", "msg": "supervisor session: relay opened successfully", "seq": 3, "drain_end_seq": 3, "marker": null},
+    {"class": "GATEWAY", "msg": "supervisor session: stream error", "seq": 3, "drain_end_seq": 3, "marker": "possible_loss"},
+    {"class": "GATEWAY", "msg": "supervisor session: stream error", "seq": 4, "drain_end_seq": 3, "marker": "informational"},
+    {"class": "GATEWAY", "msg": "supervisor session: stream closed by supervisor", "seq": 2, "drain_end_seq": 3, "marker": "possible_loss"},
+    {"class": "GATEWAY", "msg": "supervisor session: stream closed by supervisor", "seq": 4, "drain_end_seq": 3, "marker": "informational"},
+    {"class": "GATEWAY", "msg": "supervisor session: ended", "seq": 3, "drain_end_seq": 3, "marker": "possible_loss"},
+    {"class": "GATEWAY", "msg": "supervisor session: ended", "seq": 4, "drain_end_seq": 3, "marker": "informational"},
+    {"class": "GATEWAY", "msg": "supervisor session: a line no capture has shown", "seq": 2, "drain_end_seq": 3, "marker": "possible_loss"},
+    {"class": "GATEWAY", "msg": "supervisor session: accepted again", "seq": 2, "drain_end_seq": 3, "marker": "possible_loss"},
+    {"class": "GATEWAY", "msg": "supervisor session: stream error", "seq": null, "drain_end_seq": 3, "marker": "possible_loss"},
+    {"class": "GATEWAY", "msg": "supervisor session:", "seq": 2, "drain_end_seq": 3, "marker": "possible_loss"},
+    {"class": "GATEWAY", "msg": "Stopping sandbox container", "seq": 2, "drain_end_seq": 3, "marker": null}
+  ]
+}

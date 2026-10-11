@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "run_id": "205a205a205a205a205a205a205a205a",
+  "sandbox_id": "fee01160-dfa3-4442-8fa7-0328634b17cc",
+  "gateway_version": "0.1.2",
+  "policy_submitted_sha256": "1edbd513404de3ee09ddb2867bd794ab7ac9dbe748790ac03a653bfd7b8fb88b",
+  "policy_v1_hash": "79e8bfaa5edc5c46e6363a8974dca990ddf379a6ef2b1bf8cd40ab983b845f85",
+  "policy_v1_source": "end",
+  "policy_enriched_hash": "949fa9198f239efa4b34cabf24ff5f42f331ccd30f3ae869ccf438d361a8f1a3",
+  "policy_revision": {
+    "create": 1,
+    "end": 2
+  },
+  "policy_history_sha256": "a62788bf5b77b08feb1289a8390663c25b5f1bd724bddd1cc906d3cdcff870bf",
+  "settings_digest": {
+    "create": "7afc23918c3b1972bdb967a66e34e07e795691a9e6e07d35663a6b8215b13a11",
+    "end": "7afc23918c3b1972bdb967a66e34e07e795691a9e6e07d35663a6b8215b13a11"
+  },
+  "provider_env_digest": {
+    "create": "cd6f1a24ad1a68e40def8a9628da1a5520c9924e9064e91ccd40e1dc1198a456",
+    "end": "cd6f1a24ad1a68e40def8a9628da1a5520c9924e9064e91ccd40e1dc1198a456"
+  }
+}

@@ -1,0 +1,5 @@
+#!konareef-toml/v1
+[pod]
+name = "empty-pod"
+version = "0.1.0"
+[_files]

@@ -1,0 +1,592 @@
+{
+  "format": "konareef-sealed-grants-fixtures/v1",
+  "status": "PROPOSED \u2014 design MCP-C00 (reef-core#42); codes and stages are frozen only after owner approval",
+  "carrier": {
+    "head_marker_key": "network.sealed_grants",
+    "head_marker_value": "konareef-sealed-grants/v1",
+    "body_path": "sealed/grants.toml",
+    "grants_format": "konareef-sealed-grants/v1"
+  },
+  "canaries": [
+    "cnry-c00k7q",
+    "cnryc00k7q",
+    "CNRY_C00K7Q",
+    "cnry_a"
+  ],
+  "canary_rule": "No canary may appear in any head fixture, in any public response, log line, channel event, proof, listing or buyer-facing error. Canaries may appear only in grants files and in publisher-only publish errors.",
+  "publisher_codes": [
+    "GATEWAY_HOST_DUPLICATE",
+    "GATEWAY_MCP_HOST_ALSO_EGRESS",
+    "GATEWAY_MCP_NAME_DUPLICATE",
+    "GATEWAY_MCP_NAME_RESERVED",
+    "GATEWAY_MCP_RUNTIME_UNSUPPORTED",
+    "GATEWAY_MCP_TOOL_NAME_COLLISION",
+    "SEALED_GRANTS_FILE_MISSING",
+    "SEALED_GRANTS_FILE_REFERENCED",
+    "SEALED_GRANTS_MARKER_MISSING",
+    "SEALED_GRANTS_OVER_CAP",
+    "SEALED_GRANTS_PUBLIC_MCP_MIXED",
+    "SEALED_GRANTS_REQUIRES_CLOSED",
+    "SEALED_GRANTS_SALT_INVALID",
+    "SEALED_GRANTS_SCHEMA",
+    "SEALED_GRANTS_TOML",
+    "SEALED_GRANTS_VERSION_UNSUPPORTED",
+    "SEALED_GRANTS_ZK_UNSUPPORTED",
+    "SEALED_GRANT_SECRET_PUBLIC"
+  ],
+  "buyer_error_kinds": [
+    "closed_pod_not_runnable",
+    "closed_pod_body_unavailable"
+  ],
+  "cases": [
+    {
+      "id": "A01",
+      "stage": "publish",
+      "description": "closed pod, marker, one sealed grant, no overlap",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "expect": "accept"
+    },
+    {
+      "id": "A02",
+      "stage": "publish",
+      "description": "closed pod, marker, zero sealed grants (padding file; existence bit hidden)",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-zero.toml",
+      "expect": "accept"
+    },
+    {
+      "id": "A03",
+      "stage": "publish",
+      "description": "two grants; one on host:8443 while egress names the same host on 443 (different authorities)",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-two-port-distinct.toml",
+      "expect": "accept"
+    },
+    {
+      "id": "A04",
+      "stage": "publish",
+      "description": "legacy closed pod: no marker, no grants file, no public mcp grant",
+      "head": "heads/closed-no-marker.toml",
+      "grants": null,
+      "expect": "accept"
+    },
+    {
+      "id": "A05",
+      "stage": "publish",
+      "description": "zero sealed grants on a non-broker runtime (G14 applies only when grants exist)",
+      "head": "heads/closed-sealed-unsupported-runtime.toml",
+      "grants": "grants/valid-zero.toml",
+      "expect": "accept"
+    },
+    {
+      "id": "R01",
+      "stage": "publish",
+      "description": "marker on an open pod",
+      "head": "heads/open-with-marker.toml",
+      "grants": "grants/valid-one.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_REQUIRES_CLOSED"
+    },
+    {
+      "id": "R02",
+      "stage": "publish",
+      "description": "marker present, grants file absent from body",
+      "head": "heads/closed-sealed.toml",
+      "grants": null,
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_FILE_MISSING"
+    },
+    {
+      "id": "R03",
+      "stage": "publish",
+      "description": "grants file at the reserved path, marker absent",
+      "head": "heads/closed-no-marker.toml",
+      "grants": "grants/valid-one.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_MARKER_MISSING"
+    },
+    {
+      "id": "R04",
+      "stage": "publish",
+      "description": "unsupported carrier version",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/format-v2.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_VERSION_UNSUPPORTED"
+    },
+    {
+      "id": "R05",
+      "stage": "publish",
+      "description": "salt shorter than 32 bytes",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/salt-short.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_SALT_INVALID"
+    },
+    {
+      "id": "R06",
+      "stage": "publish",
+      "description": "salt missing",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/salt-missing.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_SALT_INVALID"
+    },
+    {
+      "id": "R07",
+      "stage": "publish",
+      "description": "salt not lowercase hex",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/salt-uppercase.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_SALT_INVALID"
+    },
+    {
+      "id": "R08",
+      "stage": "publish",
+      "description": "reserved namespace",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/reserved-namespace.toml",
+      "expect": "refuse",
+      "publisher_code": "GATEWAY_MCP_NAME_RESERVED"
+    },
+    {
+      "id": "R09",
+      "stage": "publish",
+      "description": "two sealed grants share mcp_name",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/duplicate-name.toml",
+      "expect": "refuse",
+      "publisher_code": "GATEWAY_MCP_NAME_DUPLICATE"
+    },
+    {
+      "id": "R10",
+      "stage": "publish",
+      "description": "sealed grant authority equals a public HTTP gateway authority",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/duplicate-authority-public-http.toml",
+      "expect": "refuse",
+      "publisher_code": "GATEWAY_HOST_DUPLICATE"
+    },
+    {
+      "id": "R11",
+      "stage": "publish",
+      "description": "two sealed grants name one authority (explicit :443 vs default port)",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/duplicate-authority-default-port.toml",
+      "expect": "refuse",
+      "publisher_code": "GATEWAY_HOST_DUPLICATE"
+    },
+    {
+      "id": "R12",
+      "stage": "publish",
+      "description": "sealed grant host covered by a public wildcard egress rule",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/host-in-wildcard-egress.toml",
+      "expect": "refuse",
+      "publisher_code": "GATEWAY_MCP_HOST_ALSO_EGRESS"
+    },
+    {
+      "id": "R13",
+      "stage": "publish",
+      "description": "sealed grant host equals a public exact egress rule on the same port",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/host-in-exact-egress.toml",
+      "expect": "refuse",
+      "publisher_code": "GATEWAY_MCP_HOST_ALSO_EGRESS"
+    },
+    {
+      "id": "R14",
+      "stage": "publish",
+      "description": "two grants whose namespaced tools sanitize to one runtime tool name",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/sanitized-tool-collision.toml",
+      "expect": "refuse",
+      "publisher_code": "GATEWAY_MCP_TOOL_NAME_COLLISION",
+      "gated_on": "MCP-K01 (konareef#9) for the CLI side"
+    },
+    {
+      "id": "R15",
+      "stage": "publish",
+      "description": "sealed grant secret is also listed in public [dependencies].secrets",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/secret-listed-public.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANT_SECRET_PUBLIC"
+    },
+    {
+      "id": "R16",
+      "stage": "publish",
+      "description": "unknown key inside a grant",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/unknown-grant-key.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_SCHEMA"
+    },
+    {
+      "id": "R17",
+      "stage": "publish",
+      "description": "unknown top-level key",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/unknown-top-key.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_SCHEMA"
+    },
+    {
+      "id": "R18",
+      "stage": "publish",
+      "description": "protocol other than mcp in the sealed carrier",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/protocol-http.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_SCHEMA"
+    },
+    {
+      "id": "R19",
+      "stage": "publish",
+      "description": "protocol omitted (v1 requires the explicit value)",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/protocol-missing.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_SCHEMA"
+    },
+    {
+      "id": "R20",
+      "stage": "publish",
+      "description": "mcp_name with a trailing newline (PCRE $ vs RE2 parity trap; use \\A...\\z)",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/mcp-name-trailing-newline.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_SCHEMA"
+    },
+    {
+      "id": "R21",
+      "stage": "publish",
+      "description": "empty mcp_tools",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/tools-empty.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_SCHEMA"
+    },
+    {
+      "id": "R22",
+      "stage": "publish",
+      "description": "grant count above the cap",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/over-cap-17.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_OVER_CAP",
+      "gated_on": "D6"
+    },
+    {
+      "id": "R23",
+      "stage": "publish",
+      "description": "grants file is not valid TOML",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/toml-invalid.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_TOML"
+    },
+    {
+      "id": "R24",
+      "stage": "publish",
+      "description": "marker head also carries a public protocol = \"mcp\" gateway entry; PUBLIC_MIXED_TOKEN is declared so no other rule fires",
+      "head": "heads/closed-sealed-public-mcp.toml",
+      "grants": "grants/valid-one.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_PUBLIC_MCP_MIXED"
+    },
+    {
+      "id": "R25",
+      "stage": "publish",
+      "description": "non-empty sealed grants on a runtime kind outside the broker set {orca, lobster}",
+      "head": "heads/closed-sealed-unsupported-runtime.toml",
+      "grants": "grants/valid-one.toml",
+      "expect": "refuse",
+      "publisher_code": "GATEWAY_MCP_RUNTIME_UNSUPPORTED",
+      "gated_on": "MCP-K01 (konareef#9) for the CLI side"
+    },
+    {
+      "id": "R26",
+      "stage": "publish",
+      "description": "ZK-enabled publish of a pod with non-empty sealed grants",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_ZK_UNSUPPORTED",
+      "publish_request": {
+        "zk_enabled": true
+      }
+    },
+    {
+      "id": "R27",
+      "stage": "publish",
+      "description": "closed head references the reserved grants file as a context prompt (G17)",
+      "head": "heads/closed-sealed-grants-referenced.toml",
+      "grants": "grants/valid-one.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_FILE_REFERENCED"
+    },
+    {
+      "id": "R28",
+      "stage": "publish",
+      "description": "closed head references the reserved grants file with different letter case (G17 folds ASCII case)",
+      "head": "heads/closed-sealed-grants-referenced-case.toml",
+      "grants": "grants/valid-one.toml",
+      "expect": "refuse",
+      "publisher_code": "SEALED_GRANTS_FILE_REFERENCED"
+    },
+    {
+      "id": "S00",
+      "stage": "spawn",
+      "description": "control: valid sealed grant, capability on, author secret present; the sealed secret is absent from [dependencies].secrets and is still resolved",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "row_state": {
+        "preflight": "current",
+        "closed_grants_capability": "on",
+        "broker_flag": "on",
+        "author_secrets": "present"
+      },
+      "expect": "accept",
+      "hold": "held_then_settled_by_run",
+      "k_body_released": true,
+      "runtime_started": true,
+      "grants_file_in_body_dir": false,
+      "secret_declared_in_head": false,
+      "secret_resolved_author_bound": true,
+      "secret_in_pod_env": false
+    },
+    {
+      "id": "S01",
+      "stage": "spawn",
+      "description": "marker-bearing row has no preflight record (published before the gate)",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "row_state": {
+        "preflight": "missing"
+      },
+      "expect": "refuse",
+      "refused_at": "pre_hold",
+      "hold": "none",
+      "k_body_released": false,
+      "runtime_started": false,
+      "credential_minted": false,
+      "upstream_contacted": false,
+      "body_dir_exists_after": false,
+      "buyer_error_kind": "closed_pod_not_runnable",
+      "operator_code": "SEALED_GRANTS_PREFLIGHT_MISSING"
+    },
+    {
+      "id": "S02",
+      "stage": "spawn",
+      "description": "preflight validator_version older than the server's",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "row_state": {
+        "preflight": "stale_validator_version"
+      },
+      "expect": "refuse",
+      "refused_at": "pre_hold",
+      "hold": "none",
+      "k_body_released": false,
+      "runtime_started": false,
+      "credential_minted": false,
+      "upstream_contacted": false,
+      "body_dir_exists_after": false,
+      "buyer_error_kind": "closed_pod_not_runnable",
+      "operator_code": "SEALED_GRANTS_PREFLIGHT_STALE"
+    },
+    {
+      "id": "S03",
+      "stage": "spawn",
+      "description": "non-empty grants while the closed-grants capability is off",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "row_state": {
+        "preflight": "current",
+        "closed_grants_capability": "off"
+      },
+      "expect": "refuse",
+      "refused_at": "pre_hold",
+      "hold": "none",
+      "k_body_released": false,
+      "runtime_started": false,
+      "credential_minted": false,
+      "upstream_contacted": false,
+      "body_dir_exists_after": false,
+      "buyer_error_kind": "closed_pod_not_runnable",
+      "operator_code": "SEALED_GRANTS_CAPABILITY_OFF"
+    },
+    {
+      "id": "S04",
+      "stage": "spawn",
+      "description": "preflight tampered to has_grants=false; decrypted grants non-empty; capability off",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "row_state": {
+        "preflight": "tampered_has_grants_false_count_0",
+        "closed_grants_capability": "off"
+      },
+      "expect": "refuse",
+      "refused_at": "post_decrypt",
+      "hold": "released",
+      "k_body_released": true,
+      "runtime_started": false,
+      "credential_minted": false,
+      "upstream_contacted": false,
+      "body_dir_exists_after": false,
+      "buyer_error_kind": "closed_pod_not_runnable",
+      "operator_code": "SEALED_GRANTS_PREFLIGHT_MISMATCH"
+    },
+    {
+      "id": "S05",
+      "stage": "spawn",
+      "description": "author-bound secret missing for a sealed grant (no operator fallback)",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "row_state": {
+        "preflight": "current",
+        "closed_grants_capability": "on",
+        "broker_flag": "on",
+        "author_secrets": "missing"
+      },
+      "expect": "refuse",
+      "refused_at": "post_decrypt",
+      "hold": "released",
+      "k_body_released": true,
+      "runtime_started": false,
+      "credential_minted": false,
+      "upstream_contacted": false,
+      "body_dir_exists_after": false,
+      "buyer_error_kind": "closed_pod_not_runnable",
+      "operator_code": "SEALED_GRANT_SECRET_UNRESOLVED"
+    },
+    {
+      "id": "S06",
+      "stage": "spawn",
+      "description": "stored ciphertext replaced by a DB-write attacker without the KEK",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "row_state": {
+        "preflight": "current",
+        "closed_grants_capability": "on",
+        "body": "tampered"
+      },
+      "expect": "refuse",
+      "refused_at": "post_decrypt",
+      "hold": "released",
+      "k_body_released": true,
+      "runtime_started": false,
+      "credential_minted": false,
+      "upstream_contacted": false,
+      "body_dir_exists_after": false,
+      "buyer_error_kind": "closed_pod_body_unavailable",
+      "operator_code": "body_decrypt_failed",
+      "note": "an attacker who also holds the KEK and re-wraps a new K_body instead reaches body_file_hash_mismatch; both are closed_pod_body_unavailable to the buyer"
+    },
+    {
+      "id": "S07",
+      "stage": "spawn",
+      "description": "server rule set changed after publish (e.g. new reserved namespace) and revalidation not yet run",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "row_state": {
+        "preflight": "stale_validator_version"
+      },
+      "expect": "refuse",
+      "refused_at": "pre_hold",
+      "hold": "none",
+      "k_body_released": false,
+      "runtime_started": false,
+      "credential_minted": false,
+      "upstream_contacted": false,
+      "body_dir_exists_after": false,
+      "buyer_error_kind": "closed_pod_not_runnable",
+      "operator_code": "SEALED_GRANTS_PREFLIGHT_STALE"
+    },
+    {
+      "id": "S08",
+      "stage": "spawn",
+      "description": "failure injected at credential mint after sealed validation passed",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "row_state": {
+        "preflight": "current",
+        "closed_grants_capability": "on",
+        "broker_flag": "on",
+        "author_secrets": "present",
+        "inject": "credential_mint"
+      },
+      "expect": "refuse",
+      "refused_at": "post_decrypt",
+      "hold": "released",
+      "k_body_released": true,
+      "runtime_started": false,
+      "credential_minted": false,
+      "upstream_contacted": false,
+      "body_dir_exists_after": false,
+      "buyer_error_kind": "closed_pod_not_runnable",
+      "operator_code": "SEALED_GRANTS_START_FAILED",
+      "must_also_clean": [
+        "gateway_process",
+        "workspace"
+      ],
+      "proofs_emitted_before_failure": [
+        "structured_bundle",
+        "openbrain_snapshot"
+      ],
+      "success_proof_emitted": false
+    },
+    {
+      "id": "S09",
+      "stage": "spawn",
+      "description": "failure injected at broker start",
+      "head": "heads/closed-sealed.toml",
+      "grants": "grants/valid-one.toml",
+      "row_state": {
+        "preflight": "current",
+        "closed_grants_capability": "on",
+        "broker_flag": "on",
+        "author_secrets": "present",
+        "inject": "broker_start"
+      },
+      "expect": "refuse",
+      "refused_at": "post_decrypt",
+      "hold": "released",
+      "k_body_released": true,
+      "runtime_started": false,
+      "credential_minted": true,
+      "upstream_contacted": false,
+      "body_dir_exists_after": false,
+      "buyer_error_kind": "closed_pod_not_runnable",
+      "operator_code": "SEALED_GRANTS_START_FAILED",
+      "credential_revoked_after": true,
+      "must_also_clean": [
+        "gateway_process",
+        "workspace",
+        "run_credential"
+      ],
+      "proofs_emitted_before_failure": [
+        "structured_bundle",
+        "openbrain_snapshot"
+      ],
+      "success_proof_emitted": false
+    }
+  ],
+  "operator_codes": [
+    "SEALED_GRANTS_CAPABILITY_OFF",
+    "SEALED_GRANTS_PREFLIGHT_MISMATCH",
+    "SEALED_GRANTS_PREFLIGHT_MISSING",
+    "SEALED_GRANTS_PREFLIGHT_STALE",
+    "SEALED_GRANTS_START_FAILED",
+    "SEALED_GRANT_SECRET_UNRESOLVED",
+    "body_decrypt_failed"
+  ],
+  "broker_runtime_kinds": [
+    "orca",
+    "lobster"
+  ],
+  "code_matching": "A refused publish case passes when its publisher_code is among the codes the implementation returns. Implementations report every violation, not only the first."
+}

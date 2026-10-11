@@ -1,0 +1,17 @@
+pod_spec_version = "0.1"
+
+[pod]
+name = "tool-authority-uncommitted"
+
+[model]
+provider = "openai"
+name = "gpt-4o"
+
+[budget]
+max_sats = 1
+
+[[context.tools]]
+source = "bash"
+
+[directive]
+tools_allowed = ["curl"]

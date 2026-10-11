@@ -1,0 +1,72 @@
+pod_spec_version = "0.1"
+
+[pod]
+name = "voice-forge"
+version = "0.1.5"
+description = "Single-shot demo: speaks the requested text as an mp3 in a given (or default) ElevenLabs voice. Runs the whole workflow in one bash call so the tool-log stays within the Type-C pod-step circuit's cap of 4 records."
+authors = ["Jerry David Chan"]
+license = "Apache-2.0"
+tags = ["demo", "voice", "elevenlabs", "tts"]
+lineage_id = "921eb9a712c0f384e104a3f7f770ffe5"
+
+[runtime]
+kind = "lobster"
+version = "^0.1"
+
+[model]
+provider = "anthropic"
+name = "claude-sonnet-4-5"
+
+# Declared tool allowlist. The opencode agent does its work through `bash`
+# (curl/jq/ffmpeg/yt-dlp all run under it). The Type-C pod-step circuit
+# requires >=1 declared tool, and every runtime tool call is checked to be a
+# member of this allowlist.
+[[context.tools]]
+source = "bash"
+
+[dependencies]
+system = ["curl", "jq", "ffmpeg"]
+secrets = ["ELEVENLABS_API_KEY"]
+
+[inputs]
+speak_text = { type = "string", required = true, description = "Text the voice will speak (≤5000 chars — the budget)" }
+voice_id = { type = "string", required = false, description = "An existing ElevenLabs voice id to speak with; defaults to Rachel (21m00Tcm4TlvDq8ikWAM)" }
+
+[directive]
+template = "./prompts/system.md"
+# The whole workflow runs in a single bash call, so the run stays well within the
+# circuit's 4-tool-log-record cap even with a couple of agent iterations.
+max_iterations = 4
+
+[output]
+format = "markdown"
+
+[[output.success]]
+kind = "file_exists"
+path = "./output/speech.mp3"
+
+[[output.success]]
+kind = "file_exists"
+path = "./output/report.md"
+
+[[output.failure]]
+kind = "timeout_seconds"
+value = 900
+
+[[output.failure]]
+kind = "budget_exhausted"
+
+[[output.deliverables]]
+path = "./output/speech.mp3"
+description = "The synthesized speech audio"
+optional = false
+
+[[output.deliverables]]
+path = "./output/report.md"
+description = "Run report: mode used, voice ID, characters consumed vs budget"
+optional = false
+
+# Budget denomination for this pod: 1 sat == 1 ElevenLabs character.
+# max_sats = 5000 therefore caps the run at 5,000 TTS characters.
+[budget]
+max_sats = 5000

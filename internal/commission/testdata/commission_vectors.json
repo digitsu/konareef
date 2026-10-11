@@ -1,0 +1,72 @@
+{
+ "_purpose": "Spec §10.5 golden vectors. Fixed inputs with their expected canonical CBOR bytes and h_commission, following the discipline of internal/canon/testdata/fields_root_vectors.json, so a future change to the canonical encoding is caught as a deliberate act rather than discovered downstream after it has invalidated every previously issued signature.",
+ "_construction": "canonical = cbor.CanonicalEncOptions() over commission.canonicalProposal{1:models, 2:tools, 3:labels, 4:c_max, 5:binding{1:pod_ref, 2:h_manifest}, 6:prose}, with every set passed through envelope.Normalise (sort + dedupe). h_commission = SHA-256(canonical). Presence flags are deliberately NOT part of the canonical form, so every vector is computed with all four set.",
+ "_generated": "2026-08-29, from internal/commission at the commit that introduced this file. Regenerating these values is a decision, not a chore: changing a keyasint tag number or adding a field alters every h_commission the system has ever produced. If this file must change, say why in the commit message.",
+ "vectors": [
+  {
+   "name": "empty",
+   "why": "Pins the nil-vs-empty-array choice. envelope.Normalise returns nil for an empty set, so a stated-but-empty dimension encodes as CBOR null (0xf6), not as an empty array (0x80). Anything that changed that would change every hash.",
+   "models": [],
+   "tools": [],
+   "labels": [],
+   "c_max": 0,
+   "pod_ref": "",
+   "h_manifest": "0000000000000000000000000000000000000000000000000000000000000000",
+   "prose": "",
+   "canonical": "a601f602f603f6040005a2016002582000000000000000000000000000000000000000000000000000000000000000000660",
+   "h_commission": "352746a1ca6f972b47e4b9fe285cc07328e9cea531fa5c8a15c9510f20f8f2d9"
+  },
+  {
+   "name": "typical",
+   "why": "An ordinary commission with every dimension populated, already in normalised order. The reference case.",
+   "models": ["claude-sonnet-5", "gpt-4o"],
+   "tools": ["fs_read", "web_search"],
+   "labels": ["internal", "public"],
+   "c_max": 4200,
+   "pod_ref": "dave/mybot@0.1.0",
+   "h_manifest": "ffe0a7f6b43321598a01dcde46fe18c515f3310898ab31f231175252c076411c",
+   "prose": "Summarise the weekly reports.",
+   "canonical": "a601826f636c617564652d736f6e6e65742d35666770742d346f02826766735f726561646a7765625f736561726368038268696e7465726e616c667075626c69630419106805a20170646176652f6d79626f7440302e312e30025820ffe0a7f6b43321598a01dcde46fe18c515f3310898ab31f231175252c076411c06781d53756d6d617269736520746865207765656b6c79207265706f7274732e",
+   "h_commission": "b2c65408bf09997183c5fe4698e80b0adb1c39f34f05b4612740792f73af858b"
+  },
+  {
+   "name": "unsorted_with_duplicates",
+   "why": "The same permitted sets as 'typical', declared out of order and with duplicates. Its canonical bytes and h_commission are byte-identical to 'typical' by design: two proposals that permit the same things must hash the same however they were written. Pinning both values makes normalisation part of the wire contract, not an implementation detail.",
+   "models": ["gpt-4o", "claude-sonnet-5", "gpt-4o"],
+   "tools": ["web_search", "fs_read"],
+   "labels": ["public", "internal", "public"],
+   "c_max": 4200,
+   "pod_ref": "dave/mybot@0.1.0",
+   "h_manifest": "ffe0a7f6b43321598a01dcde46fe18c515f3310898ab31f231175252c076411c",
+   "prose": "Summarise the weekly reports.",
+   "canonical": "a601826f636c617564652d736f6e6e65742d35666770742d346f02826766735f726561646a7765625f736561726368038268696e7465726e616c667075626c69630419106805a20170646176652f6d79626f7440302e312e30025820ffe0a7f6b43321598a01dcde46fe18c515f3310898ab31f231175252c076411c06781d53756d6d617269736520746865207765656b6c79207265706f7274732e",
+   "h_commission": "b2c65408bf09997183c5fe4698e80b0adb1c39f34f05b4612740792f73af858b"
+  },
+  {
+   "name": "stated_empty_sets",
+   "why": "A real commission that permits no model and no tool but does pin a pod and does allow a spend of 1 sat. Distinct from 'empty' only in c_max, pod_ref, h_manifest and prose, so it pins that those four fields reach the hash.",
+   "models": [],
+   "tools": [],
+   "labels": [],
+   "c_max": 1,
+   "pod_ref": "dave/mybot@0.1.0",
+   "h_manifest": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+   "prose": "May call nothing.",
+   "canonical": "a601f602f603f6040105a20170646176652f6d79626f7440302e312e300258200102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2006714d61792063616c6c206e6f7468696e672e",
+   "h_commission": "2dd53cd9276f6756ebb50ef3f66aa8892728e23de386fe4e948c63db8b4da890"
+  },
+  {
+   "name": "non_ascii_prose",
+   "why": "Prose carrying accented Latin, an em dash and CJK. The Ricardian claim is that prose and parameters are bound into one hash, so the prose encoding is part of the contract: this pins it as UTF-8 in a CBOR text string.",
+   "models": ["claude-sonnet-5"],
+   "tools": ["fs_read"],
+   "labels": ["public"],
+   "c_max": 4200,
+   "pod_ref": "dave/mybot@0.1.0",
+   "h_manifest": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+   "prose": "Résumé des rapports — 週報の要約.",
+   "canonical": "a601816f636c617564652d736f6e6e65742d3502816766735f726561640381667075626c69630419106805a20170646176652f6d79626f7440302e312e300258200102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2006782a52c3a973756dc3a92064657320726170706f72747320e2809420e980b1e5a0b1e381aee8a681e7b4842e",
+   "h_commission": "0ffd5579084dd259e16b8e1d47b078415407fd7c8592d2d107d0b483067a9de7"
+  }
+ ]
+}
