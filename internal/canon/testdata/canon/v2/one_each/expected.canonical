@@ -1,0 +1,14 @@
+#!konareef-toml/v2
+[budget]
+max_sats = 1000
+[context]
+[[context.tools]]
+source = "bash"
+[model]
+name = "gpt-4o"
+provider = "openai"
+[pod]
+name = "one-each"
+[_files]
+[_commit]
+fields_root = "poseidon:fad04d34d3c97bf485d0bd8b51aa2567e8eec855434b65ca101c6c647ea82603"

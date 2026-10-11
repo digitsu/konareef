@@ -1,0 +1,15 @@
+pod_spec_version = "0.1"
+
+[pod]
+name = "memory-bearing"
+
+[model]
+provider = "openai"
+name = "gpt-4o"
+
+[budget]
+max_sats = 1
+
+[[context.memory]]
+kind = "snapshot"
+snapshot = "s1"

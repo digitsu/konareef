@@ -1,0 +1,9 @@
+#!konareef-toml/v1
+[config]
+name = "demo"
+retries = 3
+[meta]
+[meta.publisher]
+handle = "alice"
+region = "us"
+[_files]

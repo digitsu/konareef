@@ -1,0 +1,415 @@
+{
+  "_comment": [
+    "Tool-policy fixtures for docs/design/tool-policy-semantics-adr.md (TA-00, konareef#18).",
+    "Each case is one manifest shape. 'declared' is [[context.tools]].source (null = no entries),",
+    "'allowed' / 'denied' are [directive].tools_allowed / tools_denied (null = key omitted,",
+    "[] = key present and empty), and 'commission_tools' is the buyer envelope Tools dimension.",
+    "'current' records what the code on main does TODAY. It is not the approved contract.",
+    "'relations' records the two candidate subset directions, evaluated byte-for-byte, so that",
+    "each option in the ADR can be read against the same inputs.",
+    "TA-01 adds an 'approved' block once the owner decides; it must not edit 'current' to match.",
+    "TA-01 (konareef#19) added the 'approved' block per case: the tool-policy semantics ADR's decisions D3-D5 as implemented. 'current' is left untouched as the frozen pre-TA-01 record."
+  ],
+  "cases": [
+    {
+      "id": "TP-01",
+      "note": "allowed narrower than declared. Shipped per-name rule passes; the Sep 1 proposal (declared ⊆ allowed) fails.",
+      "declared": [
+        "bash",
+        "curl"
+      ],
+      "allowed": [
+        "bash"
+      ],
+      "denied": null,
+      "commission_tools": [
+        "bash"
+      ],
+      "current": {
+        "validate_warnings": 0,
+        "publish_code": "",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "bash",
+          "curl"
+        ],
+        "buyer_contains": false
+      },
+      "approved": {
+        "validate_issues": 0,
+        "validate_warnings": 0,
+        "publish_code": "",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "bash",
+          "curl"
+        ],
+        "buyer_contains": false
+      },
+      "relations": {
+        "allowed_subset_declared": true,
+        "declared_subset_allowed": false,
+        "deny_overlaps_allowed": false
+      }
+    },
+    {
+      "id": "TP-02",
+      "note": "allowed names a tool that is not declared. validate warns and v2 publish refuses, but commission check accepts: check/sign and publish disagree on this manifest.",
+      "declared": [
+        "bash"
+      ],
+      "allowed": [
+        "curl"
+      ],
+      "denied": null,
+      "commission_tools": [
+        "bash"
+      ],
+      "current": {
+        "validate_warnings": 1,
+        "publish_code": "COMMIT_TOOL_AUTHORITY_UNCOMMITTED",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "bash"
+        ],
+        "buyer_contains": true
+      },
+      "approved": {
+        "validate_issues": 0,
+        "validate_warnings": 1,
+        "publish_code": "COMMIT_TOOL_AUTHORITY_UNCOMMITTED",
+        "commission_guard": "refuse_uncommitted",
+        "envelope_tools": null,
+        "buyer_contains": null
+      },
+      "relations": {
+        "allowed_subset_declared": false,
+        "declared_subset_allowed": false,
+        "deny_overlaps_allowed": false
+      }
+    },
+    {
+      "id": "TP-03",
+      "note": "no directive lists. Every surface accepts; the envelope is the declared set.",
+      "declared": [
+        "bash"
+      ],
+      "allowed": null,
+      "denied": null,
+      "commission_tools": [
+        "bash"
+      ],
+      "current": {
+        "validate_warnings": 0,
+        "publish_code": "",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "bash"
+        ],
+        "buyer_contains": true
+      },
+      "approved": {
+        "validate_issues": 0,
+        "validate_warnings": 0,
+        "publish_code": "",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "bash"
+        ],
+        "buyer_contains": true
+      },
+      "relations": {
+        "allowed_subset_declared": null,
+        "declared_subset_allowed": null,
+        "deny_overlaps_allowed": false
+      }
+    },
+    {
+      "id": "TP-04",
+      "note": "tools_allowed = [] explicitly. Today identical to TP-03 (len==0 in Go, `|| []` in Elixir). Under 'empty means allow nothing' the runtime would permit no tool while the envelope still says bash.",
+      "declared": [
+        "bash"
+      ],
+      "allowed": [],
+      "denied": null,
+      "commission_tools": [
+        "bash"
+      ],
+      "current": {
+        "validate_warnings": 0,
+        "publish_code": "",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "bash"
+        ],
+        "buyer_contains": true
+      },
+      "approved": {
+        "validate_issues": 0,
+        "validate_warnings": 1,
+        "publish_code": "COMMIT_TOOL_AUTHORITY_CONTRADICTION",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "bash"
+        ],
+        "buyer_contains": true
+      },
+      "relations": {
+        "allowed_subset_declared": true,
+        "declared_subset_allowed": false,
+        "deny_overlaps_allowed": false
+      }
+    },
+    {
+      "id": "TP-05",
+      "note": "both lists; deny overlaps allowed. Nothing checks deny today, so the overlap is silent everywhere.",
+      "declared": [
+        "bash",
+        "read"
+      ],
+      "allowed": [
+        "bash",
+        "read"
+      ],
+      "denied": [
+        "bash"
+      ],
+      "commission_tools": [
+        "bash",
+        "read"
+      ],
+      "current": {
+        "validate_warnings": 0,
+        "publish_code": "",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "bash",
+          "read"
+        ],
+        "buyer_contains": true
+      },
+      "approved": {
+        "validate_issues": 1,
+        "validate_warnings": 0,
+        "publish_code": "COMMIT_TOOL_DENY_OVERLAP",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "bash",
+          "read"
+        ],
+        "buyer_contains": true
+      },
+      "relations": {
+        "allowed_subset_declared": true,
+        "declared_subset_allowed": true,
+        "deny_overlaps_allowed": true
+      }
+    },
+    {
+      "id": "TP-06",
+      "note": "deny names a label that is neither declared nor a runtime tool name (the code-reviewer example does this). Accepted everywhere; the label has no referent.",
+      "declared": [
+        "bash"
+      ],
+      "allowed": null,
+      "denied": [
+        "secrets_read"
+      ],
+      "commission_tools": [
+        "bash"
+      ],
+      "current": {
+        "validate_warnings": 0,
+        "publish_code": "",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "bash"
+        ],
+        "buyer_contains": true
+      },
+      "approved": {
+        "validate_issues": 0,
+        "validate_warnings": 1,
+        "publish_code": "",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "bash"
+        ],
+        "buyer_contains": true
+      },
+      "relations": {
+        "allowed_subset_declared": null,
+        "declared_subset_allowed": null,
+        "deny_overlaps_allowed": false
+      }
+    },
+    {
+      "id": "TP-07",
+      "note": "canonically equivalent Unicode: declared NFC 'café', allowed NFD 'cafe'+U+0301. Byte comparison treats them as different, so validate warns and publish refuses.",
+      "declared": [
+        "café"
+      ],
+      "allowed": [
+        "café"
+      ],
+      "denied": null,
+      "commission_tools": [
+        "café"
+      ],
+      "current": {
+        "validate_warnings": 1,
+        "publish_code": "COMMIT_TOOL_AUTHORITY_UNCOMMITTED",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "café"
+        ],
+        "buyer_contains": true
+      },
+      "approved": {
+        "validate_issues": 0,
+        "validate_warnings": 1,
+        "publish_code": "COMMIT_NON_NFC_ID",
+        "commission_guard": "refuse_non_nfc",
+        "envelope_tools": null,
+        "buyer_contains": null
+      },
+      "relations": {
+        "allowed_subset_declared": false,
+        "declared_subset_allowed": false,
+        "deny_overlaps_allowed": false
+      }
+    },
+    {
+      "id": "TP-08",
+      "note": "declared source itself is NFD. v2 publish refuses COMMIT_NON_NFC_ID; the commission path applies no NFC check and derives an envelope over the NFD bytes.",
+      "declared": [
+        "café"
+      ],
+      "allowed": [
+        "café"
+      ],
+      "denied": null,
+      "commission_tools": [
+        "café"
+      ],
+      "current": {
+        "validate_warnings": 0,
+        "publish_code": "COMMIT_NON_NFC_ID",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "café"
+        ],
+        "buyer_contains": true
+      },
+      "approved": {
+        "validate_issues": 0,
+        "validate_warnings": 2,
+        "publish_code": "COMMIT_NON_NFC_ID",
+        "commission_guard": "refuse_non_nfc",
+        "envelope_tools": null,
+        "buyer_contains": null
+      },
+      "relations": {
+        "allowed_subset_declared": true,
+        "declared_subset_allowed": true,
+        "deny_overlaps_allowed": false
+      }
+    },
+    {
+      "id": "TP-09",
+      "note": "allowed only, no [[context.tools]]. The one shape the coarse commission guard refuses (decision 2026-08-31).",
+      "declared": null,
+      "allowed": [
+        "bash"
+      ],
+      "denied": null,
+      "commission_tools": [
+        "bash"
+      ],
+      "current": {
+        "validate_warnings": 1,
+        "publish_code": "COMMIT_TOOL_AUTHORITY_UNCOMMITTED",
+        "commission_guard": "refuse_uncommitted",
+        "envelope_tools": null,
+        "buyer_contains": null
+      },
+      "approved": {
+        "validate_issues": 0,
+        "validate_warnings": 1,
+        "publish_code": "COMMIT_TOOL_AUTHORITY_UNCOMMITTED",
+        "commission_guard": "refuse_uncommitted",
+        "envelope_tools": null,
+        "buyer_contains": null
+      },
+      "relations": {
+        "allowed_subset_declared": false,
+        "declared_subset_allowed": true,
+        "deny_overlaps_allowed": false
+      }
+    },
+    {
+      "id": "TP-10",
+      "note": "tools_allowed = [] and no [[context.tools]]. The coarse guard sees len==0 and accepts; the envelope says 'no tools' (ToolsSet true, Tools empty).",
+      "declared": null,
+      "allowed": [],
+      "denied": null,
+      "commission_tools": [],
+      "current": {
+        "validate_warnings": 0,
+        "publish_code": "",
+        "commission_guard": "accept",
+        "envelope_tools": null,
+        "buyer_contains": true
+      },
+      "approved": {
+        "validate_issues": 0,
+        "validate_warnings": 0,
+        "publish_code": "",
+        "commission_guard": "accept",
+        "envelope_tools": null,
+        "buyer_contains": true
+      },
+      "relations": {
+        "allowed_subset_declared": true,
+        "declared_subset_allowed": true,
+        "deny_overlaps_allowed": false
+      }
+    },
+    {
+      "id": "TP-11",
+      "note": "case differs: declared 'Bash', allowed 'bash'. Comparison is case-sensitive everywhere.",
+      "declared": [
+        "Bash"
+      ],
+      "allowed": [
+        "bash"
+      ],
+      "denied": null,
+      "commission_tools": [
+        "Bash"
+      ],
+      "current": {
+        "validate_warnings": 1,
+        "publish_code": "COMMIT_TOOL_AUTHORITY_UNCOMMITTED",
+        "commission_guard": "accept",
+        "envelope_tools": [
+          "Bash"
+        ],
+        "buyer_contains": true
+      },
+      "approved": {
+        "validate_issues": 0,
+        "validate_warnings": 1,
+        "publish_code": "COMMIT_TOOL_AUTHORITY_UNCOMMITTED",
+        "commission_guard": "refuse_uncommitted",
+        "envelope_tools": null,
+        "buyer_contains": null
+      },
+      "relations": {
+        "allowed_subset_declared": false,
+        "declared_subset_allowed": false,
+        "deny_overlaps_allowed": false
+      }
+    }
+  ]
+}

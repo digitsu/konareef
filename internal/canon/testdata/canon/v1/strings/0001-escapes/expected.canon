@@ -1,0 +1,11 @@
+#!konareef-toml/v1
+[s]
+a_quote = "he said \"hi\""
+b_backslash = "a\\b"
+c_tab = "x\ty"
+d_newline = "line1\nline2"
+e_control = "bell\u0007done"
+f_unicode = "caf\u00e9 \u2014 \u65e5\u672c\u8a9e"
+g_emoji = "rocket \U0001f680"
+h_plain = "plain ascii text"
+[_files]

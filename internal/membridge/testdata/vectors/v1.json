@@ -1,0 +1,279 @@
+{
+  "constants": {
+    "D": 20,
+    "DTAG_CELL": "0x21",
+    "DTAG_KEY": "0x20",
+    "EMPTY_ROOT_D20": "c5a959b0cf2043a38c6c75e8f05b0f809bbfdc2ce2e2bbf1f7821d7d1de9d727",
+    "EMPTY_VALUE_HASH": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "HARD_CAP_K": 500,
+    "INDEX_DOMAIN": "konareef-mem-idx/v1",
+    "LEAF_TAG": "0x10",
+    "NODE_TAG": "0x11",
+    "R_MAX": 8
+  },
+  "description": "Part B memory-bridge and Part C T_log golden conformance vectors for konareef-integration-contract/v1. Part B vectors specify byte-exact (index, value_hash, leaf_hash, r_init) outputs per PRD 4 \u00a73.2 (B.1), or named error verdicts. Part C vector tlog-from-db-rows specifies T_log leaf hashes and t_root from DB-row-shaped proof_tool_calls input per PRD 4 \u00a74.1.4 and PRD 1 \u00a75.4.",
+  "schema": "konareef-integration-contract-conformance-vectors/v1",
+  "vectors": [
+    {
+      "description": "Single populated cell for thought_id=42, SALT_A, CH_1. Exercises the full B.1 derivation chain: logical_key \u2192 index \u2192 canonical_cell_payload \u2192 value_hash \u2192 leaf_hash \u2192 sparse root.",
+      "expected": {
+        "index": 863541,
+        "leaf_hash": "ed026b039cc6471f4b1b313f2650a6bfabb6459e71f6755b2f4256d1e95e5426",
+        "r_init": "2cff847f318a6f449b19b2924fbf1d838a3570dde25c3e2a8ef3b25e4ded0630",
+        "value_hash": "4bdd9e1e32cecd02391038198867ae72b4066cd42aaf67f07a466016aff3511a",
+        "verdict": "accept"
+      },
+      "id": "mem-populated-single",
+      "inputs": {
+        "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+        "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "thought_id": 42
+      }
+    },
+    {
+      "description": "No populated cells. The sparse root of an all-empty depth-20 tree equals E[20] = Poseidon_node(E[19], E[19]) iterated from E[0] = Poseidon_leaf(0) (PRD 1 section 5.5, Poseidon over Pallas; 32-byte little-endian Fq). This is the memory-free r_init of konareef-rinit/v1 (R-M10).",
+      "expected": {
+        "empty_leaf_hash": "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+        "r_init": "c5a959b0cf2043a38c6c75e8f05b0f809bbfdc2ce2e2bbf1f7821d7d1de9d727",
+        "verdict": "accept"
+      },
+      "id": "mem-empty-sentinel",
+      "inputs": {
+        "cells": {},
+        "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "description": "Three populated cells (thought_id=1,2,3) with SALT_A. r_init is the sparse Merkle root over the three derived (index, value_hash) pairs.",
+      "expected": {
+        "indices": [
+          768629,
+          522442,
+          563664
+        ],
+        "r_init": "86ec05dda6bd85f65f477160a7cddee1bb0f7e4b1775d09f1b9c88009ee2871f",
+        "value_hashes": [
+          "356731b5903301c74524f06fc262675b88819c1be08987750747de67e6daeb36",
+          "fa4900217d1c3410daa9b0f47ad182ed0ef1a05db3e3c83c87d2c7dc152fca21",
+          "b855c3bfcda4f9ac1732eabbb002eec297df5920a01757e4fe7d13d6082d8b0f"
+        ],
+        "verdict": "accept"
+      },
+      "id": "mem-multi-cell-root",
+      "inputs": {
+        "cells": [
+          {
+            "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+            "thought_id": 1
+          },
+          {
+            "content_hash": "c29aa59cafc9e2437b2c9f0c8772593e63c5fe7b63dee5f9f1b1a8cc3369f919",
+            "thought_id": 2
+          },
+          {
+            "content_hash": "72b2ac744cd525b6ed060ef36ebf16496b2db6fed6ab44c82b292976b3338349",
+            "thought_id": 3
+          }
+        ],
+        "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "description": "thought_id=128 supplied with a non-minimal LEB128 encoding (0x80 0x81 0x00 \u2014 3 bytes decoding to 128, where the minimal encoding is the 2-byte 0x80 0x01; the extra septet is spurious continuation padding). PRD 4 \u00a73.2.3 requires fail-closed rejection. The logical_key and index derived from this input are undefined and MUST NOT be used.",
+      "expected": {
+        "verdict": "ERR_LEB128_NONMINIMAL"
+      },
+      "id": "mem-leb128-nonminimal-reject",
+      "inputs": {
+        "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "thought_id": 128,
+        "thought_id_bytes_minimal": "8001",
+        "thought_id_bytes_nonminimal": "808100"
+      }
+    },
+    {
+      "description": "pod_salt of 31 bytes (one byte short). PRD 4 \u00a73.2.2 requires the runtime to fail closed with ERR_CELL_SALT_LEN and MUST NOT proceed to index derivation.",
+      "expected": {
+        "verdict": "ERR_CELL_SALT_LEN"
+      },
+      "id": "mem-salt-length-reject",
+      "inputs": {
+        "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+        "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "pod_salt_len": 31,
+        "thought_id": 1
+      }
+    },
+    {
+      "description": "Exercises the & 0x0FFFFF trunc20 masking step. be_u32(SHA-256(...)[0:4]) may have bits above bit-19 set; the mask retains only the low 20 bits to yield index in [0, 2^20).",
+      "expected": {
+        "be_u32_raw": 2632056113,
+        "high_bits_masked": true,
+        "index": 130353,
+        "index_hex": "0x1fd31",
+        "value_hash": "514af8e12c69876dd3f463c132c6626187a07d1136cda5b37dcb2d8d8d5ba82f",
+        "verdict": "accept"
+      },
+      "id": "mem-trunc20-lowbits",
+      "inputs": {
+        "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+        "pod_salt": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "thought_id": 0
+      }
+    },
+    {
+      "description": "Minimum thought_id=0. Minimal LEB128 encoding is 0x00 (1 byte). Verifies the full chain for the boundary case.",
+      "expected": {
+        "index": 136071,
+        "leaf_hash": "4976c3b7d486d7586e72c8b8b9f1f7703893cf3df5df9307286281838e20eb3d",
+        "logical_key_hex": "2020aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0100",
+        "value_hash": "beeaf148b17f6a7e41d283beacff898b1588bd5634fd2995ac8ef3e0549bcf2d",
+        "verdict": "accept"
+      },
+      "id": "mem-thoughtid-min",
+      "inputs": {
+        "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+        "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "thought_id": 0,
+        "thought_id_bytes": "00"
+      }
+    },
+    {
+      "description": "Large thought_id=2097151 (2^21-1). Minimal LEB128 encodes as 3 bytes (0xff 0xff 0x7f). Exercises multi-byte LEB128 paths in the logical_key construction.",
+      "expected": {
+        "index": 460868,
+        "logical_key_hex": "2020aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa03ffff7f",
+        "value_hash": "435054d5ea620214921ea99b259804089597c58039cdb1d70207cb7eadf6e820",
+        "verdict": "accept"
+      },
+      "id": "mem-thoughtid-max",
+      "inputs": {
+        "content_hash": "c29aa59cafc9e2437b2c9f0c8772593e63c5fe7b63dee5f9f1b1a8cc3369f919",
+        "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "thought_id": 2097151,
+        "thought_id_bytes": "ffff7f"
+      }
+    },
+    {
+      "description": "Type-C pod: pod_salt is bundle-disclosed (PRD 4 \u00a73.3.1). External verifier re-derives index from the public logical_key. The re-derived index MUST match the authenticated leaf index in the Merkle proof.",
+      "expected": {
+        "external_rederivation_check": "passes",
+        "index": 979030,
+        "leaf_hash": "8f437d73eb4676bb391675e18c2648e32c0354f5cab2bbbebc30dfef4325132a",
+        "logical_key_hex": "2020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0107",
+        "r_init": "a86a325abc79e95855835915e1d141ef7970c07f8e124a16c66f91538a4e2f08",
+        "value_hash": "f04fc9f358223981feaa924fec1fbc86803aa6595e0f3a0ce862065bf7a69d1c",
+        "verdict": "accept"
+      },
+      "id": "mem-typeC-disclosed-salt",
+      "inputs": {
+        "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+        "disclosure_type": "C",
+        "pod_salt": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "pod_salt_disclosed": true,
+        "thought_id": 7
+      }
+    },
+    {
+      "description": "Type-D pod: pod_salt committed via h_manifest but NOT disclosed in the public bundle (PRD 4 \u00a73.3.2). External observers cannot re-derive index. Index-binding correctness rests on the documented runtime-trust assumption (PRD 4 \u00a73.8.3 / decision D8). The B.1 derivation chain is identical to Type-C; only the disclosure posture differs.",
+      "expected": {
+        "external_rederivation_check": "not_possible_without_salt",
+        "index": 281525,
+        "r_init": "17e12ec730ac86d4ada06578bb4b9bc4c58abd1cc739238049029c09ad972511",
+        "value_hash": "efe322816cf3904be463a4f6201e3c22f351c41b0a66002b18831db2577e7a21",
+        "verdict": "accept"
+      },
+      "id": "mem-typeD-committed-salt",
+      "inputs": {
+        "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+        "disclosure_type": "D",
+        "pod_salt": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "pod_salt_disclosed": false,
+        "thought_id": 7
+      }
+    },
+    {
+      "description": "Pod genesis: two thought_ids derive to the same index under this pod_salt (a genuine collision). The runtime MUST detect this, fail the current salt attempt, and resample a new pod_salt (up to R_max=8 attempts per PRD 4 \u00a73.4.2). This vector documents the collision detection requirement.",
+      "expected": {
+        "collision_detected": true,
+        "index_a": 964737,
+        "index_b": 964737,
+        "verdict": "ERR_GENESIS_RESEED_COLLISION"
+      },
+      "id": "mem-genesis-reseed-collision",
+      "inputs": {
+        "pod_salt": "32805988a90f2b71cfb2aa78c36a45062b290e2eb079dd23bc9c77ffd9a22173",
+        "thought_id_a": 0,
+        "thought_id_b": 1
+      }
+    },
+    {
+      "description": "Publish attempt with 501 cells exceeds the hard v1 cap of k<=500 cells per pod (PRD 4 \u00a73.4.1). The runtime MUST fail closed with ERR_CELL_CAP_EXCEEDED. There is no grace range, no warning-only mode, and no deferred enforcement.",
+      "expected": {
+        "verdict": "ERR_CELL_CAP_EXCEEDED"
+      },
+      "id": "mem-cap-exceeded",
+      "inputs": {
+        "cell_count": 501,
+        "hard_cap": 500,
+        "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "description": "Intra-lineage capture: thought_id_b derives the same index as the already-occupied thought_id_a under a fixed pod_salt. The runtime MUST fail closed with ERR_CELL_INDEX_COLLISION and MUST NOT silently relocate the thought (PRD 4 \u00a73.4.3).",
+      "expected": {
+        "collision_index": 964737,
+        "verdict": "ERR_CELL_INDEX_COLLISION"
+      },
+      "id": "mem-index-collision",
+      "inputs": {
+        "new_thought_derived_index": 964737,
+        "new_thought_id": 1,
+        "occupied_index": 964737,
+        "occupied_thought_id": 0,
+        "pod_salt": "32805988a90f2b71cfb2aa78c36a45062b290e2eb079dd23bc9c77ffd9a22173"
+      }
+    },
+    {
+      "description": "Part C (PRD 4 \u00a74.1.4 + PRD 1 \u00a75.4): builds t_root from an ordered set of proof_tool_calls DB rows. Rows are sorted by call_index ascending (the sole sort key). Each leaf_i = Poseidon_leaf(record_to_field(record_bytes_i), 0) where record_bytes_i = ULEB128(32) || tool_id_digest(32B) || args_hash(32B) || result_hash(32B) || ts(8B BE u64) || sats(8B BE u64) \u2014 a fixed 113 B record (digest tool_ids, decision 2026-07-05-konareef-digest-tool-ids; tool_id_digest = SHA-256(tool_id_utf8), the name itself never enters record_bytes). record_to_field folds the record via the pinned arity-2 Poseidon (0x13 domain+length seed element). The padded balanced tree uses Poseidon_internal_hash and Z sentinel Poseidon_leaf(record_to_field(b\"\"), 0). t_root = Poseidon_internal_hash(len_elem(0x03, |T_log|), tree_root_top). This construction is Poseidon-over-Pallas-Fq (PRD 1 \u00a75.4, amended 2026-06-13); the SHA-256 formulas this description previously carried were the superseded v0 form (\u00a77 generator-gap note). The self-check anchors t_root to a hard-coded constant (computed via the pinned poseidon_pallas oracle, the same discipline PRD 3's fragment:T_log_records vectors use) so the vector is non-circular with respect to this generator.",
+      "expected": {
+        "leaf_hashes": [
+          "1734a5edd4b7a5ff2cdf8fd40a5898b0d71843bcbd2519cd1587de7354fd9636",
+          "0bb75956def0942b2722cfce3ee86535aa54ac2c3806b55cb10bcd0a4555152f",
+          "0783c32e223c99c83f7fe2a96f7dc2358abdddebfcb83be5fb2ab4ff524bae33"
+        ],
+        "t_root": "a3fb150d8694c648cb8a956b38af5a8005262ba6378ce08ddd61cd011efff311",
+        "verdict": "accept"
+      },
+      "id": "tlog-from-db-rows",
+      "inputs": {
+        "rows": [
+          {
+            "args_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+            "call_index": 0,
+            "result_hash": "c29aa59cafc9e2437b2c9f0c8772593e63c5fe7b63dee5f9f1b1a8cc3369f919",
+            "sats": 1500,
+            "tool_id": "tool_a",
+            "ts_us": 1748736000000000
+          },
+          {
+            "args_hash": "72b2ac744cd525b6ed060ef36ebf16496b2db6fed6ab44c82b292976b3338349",
+            "call_index": 1,
+            "result_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+            "sats": 800,
+            "tool_id": "tool_b",
+            "ts_us": 1748736001000000
+          },
+          {
+            "args_hash": "c29aa59cafc9e2437b2c9f0c8772593e63c5fe7b63dee5f9f1b1a8cc3369f919",
+            "call_index": 2,
+            "result_hash": "72b2ac744cd525b6ed060ef36ebf16496b2db6fed6ab44c82b292976b3338349",
+            "sats": 2750,
+            "tool_id": "tool_c",
+            "ts_us": 1748736002000000
+          }
+        ]
+      }
+    }
+  ]
+}

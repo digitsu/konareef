@@ -1,0 +1,37 @@
+{
+  "description": "Qualified model ID vectors (IB-02, reef-core#50). The ID is \"<provider>/<name>\" joined by one \"/\", with no case folding, trimming or normalisation, matching konareef canon.ModelID (konareef-toml-v2-spec section 4.1, R-V2.5). Consumed by test/pod/agent/runtime/model_selection_test.exs; IB-03 (konareef#21) may port them.",
+  "qualified_id": {
+    "accept": [
+      {"provider": "anthropic", "name": "claude-sonnet-4-5", "id": "anthropic/claude-sonnet-4-5"},
+      {"provider": "openai", "name": "gpt-4o", "id": "openai/gpt-4o"},
+      {"provider": "azure", "name": "gpt-4o", "id": "azure/gpt-4o"},
+      {"provider": "openrouter", "name": "anthropic/claude-3", "id": "openrouter/anthropic/claude-3"},
+      {"provider": "Anthropic", "name": "claude-sonnet-4-5", "id": "Anthropic/claude-sonnet-4-5"}
+    ],
+    "reject": [
+      {"provider": "", "name": "gpt-4o", "error": "model_provider_missing", "konareef_code": "COMMIT_MODEL_PROVIDER_MISSING"},
+      {"provider": null, "name": "gpt-4o", "error": "model_provider_missing", "konareef_code": "COMMIT_MODEL_PROVIDER_MISSING"},
+      {"provider": "openai", "name": "", "error": "model_name_missing", "konareef_code": "COMMIT_MODEL_PROVIDER_MISSING"},
+      {"provider": "openai", "name": null, "error": "model_name_missing", "konareef_code": "COMMIT_MODEL_PROVIDER_MISSING"},
+      {"provider": "openrouter/anthropic", "name": "claude-3", "error": "model_provider_ambiguous", "konareef_code": null, "note": "reef-core only: canon.ModelID accepts this pair, but it gives the same ID as provider openrouter + name anthropic/claude-3"}
+    ]
+  },
+  "runtime_selection": {
+    "description": "ModelSelection.resolve/1 over spawn params. model_provider is set only when the manifest declares [model]. wire_model is the string the runtime is told to run, and the qualified ID a disclosure records.",
+    "accept": [
+      {"model_provider": "anthropic", "model": "claude-opus-4-6", "llm_provider": "anthropic", "wire_model": "anthropic/claude-opus-4-6"},
+      {"model_provider": null, "model": "claude-opus-4-6", "llm_provider": "anthropic", "wire_model": "anthropic/claude-opus-4-6"},
+      {"model_provider": null, "model": null, "llm_provider": "anthropic", "wire_model": "anthropic/claude-sonnet-4-5"}
+    ],
+    "reject": [
+      {"model_provider": "openai", "model": "gpt-4o", "error": "model_provider_unsupported"},
+      {"model_provider": "azure", "model": "gpt-4o", "error": "model_provider_unsupported"},
+      {"model_provider": "Anthropic", "model": "claude-sonnet-4-5", "error": "model_provider_unsupported"},
+      {"model_provider": "anthropic", "model": null, "error": "model_name_missing"},
+      {"model_provider": "", "model": "claude-sonnet-4-5", "error": "model_provider_missing"},
+      {"model_provider": "anthropic/x", "model": "claude-sonnet-4-5", "error": "model_provider_ambiguous"},
+      {"model_provider": null, "model": "openai/gpt-4o", "error": "model_name_ambiguous"},
+      {"model_provider": null, "model": "", "error": "model_name_missing"}
+    ]
+  }
+}

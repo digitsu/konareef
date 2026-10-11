@@ -1,0 +1,1129 @@
+{
+  "title": "konareef-rinit/v2 shared vectors (CL-4-live step 1)",
+  "status": "NORMATIVE for CL-4-live steps 2 and 3 (reef-core#84, owner decisions 2026-10-08: T-A, W-A, O1-b, O1-b.ii, P-A).",
+  "spec": "docs/reference/konareef-rinit-v2-spec.md",
+  "generator": "go run ./internal/membridge/testdata/rinit_v2/gen -out internal/membridge/testdata/rinit_v2/vectors.json (deterministic; TestRInitV2VectorsGenerator refuses any byte difference)",
+  "provenance": {
+    "cross_check": "internal/membridge/rinit_v2_vectors_test.go recomputes every positive and negative vector with a second, separately written reference built on membridge.LogicalKey, membridge.SparseRoot, BuildAuthPath and VerifyAuthPath.",
+    "derivation": "Computed by the generator's own v2 implementation over crypto/sha256 and internal/poseidon (pinned konareef-pod-step-v1-poseidon-params-v1.json). No v2 production code exists at generation time.",
+    "encoding": "All byte values are lowercase hex. Field elements are 32-byte little-endian Pallas Fq. The wire encodes the same bytes as base64 (spec §6).",
+    "error_codes": "Refusal codes are the spec §9 codes and the konareef-rinit/v1 codes that §9 keeps (ERR_CELL_*, ERR_RINIT_MISMATCH, MEMORY_LEAF_TABLE_INVALID, MEMORY_LEAF_TABLE_MISMATCH). Spec §4 names the code of each leaf-table check. Layers in refused_by: reef-core (seam writer), feeder (konareef sidecar), ps1 (paygate-zk prove service), circuit (konareef-pod-step-v1.2), verifier.",
+    "inputs": "Cell sets, salts and source vectors are the konareef-rinit/v1 MEM-00 inputs (internal/membridge/testdata/rinit_v1/fixtures.json), so each v2 value sits beside its v1 contrast value.",
+    "signatures": "identity.Sign (secp256k1, RFC 6979, deterministic) under the MEM-SEAM public test key. reef-core already pins its public key in test/support/fixtures/step_disclosure/mem_seam_v1.json."
+  },
+  "constants": {
+    "E0": "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+    "E20": "c5a959b0cf2043a38c6c75e8f05b0f809bbfdc2ce2e2bbf1f7821d7d1de9d727",
+    "circuit_id_memory_bearing": "konareef-pod-step-v1.2",
+    "circuit_id_memory_free": "konareef-pod-step-v1.1",
+    "dtag_cell_v2": "23",
+    "dtag_key": "20",
+    "index_domain_v2": "konareef-mem-idx/v2",
+    "index_mask": "0fffff",
+    "key_tag_domain": "konareef-mem-ktag/v1",
+    "leaf_table_domain_v2": "konareef-mem-leaves/v2",
+    "leaf_table_entry_len": 108,
+    "leaf_table_header_len": 90,
+    "leaf_table_max_cells": 500,
+    "payload_len": 65,
+    "r_init_scheme": "konareef-rinit/v2",
+    "seam_memory_scheme": "konareef-mem-src/v1",
+    "seam_touched_key": "touched_cell_id",
+    "seam_version": "seam/3",
+    "source_cell_id_domain": "konareef-mem-src/v1",
+    "tree_depth": 20,
+    "value_hash_payload_cap": 93
+  },
+  "signer": {
+    "phrase": "konareef MEM-SEAM public test key; never use for real signing",
+    "public_key_hex": "02fef3e7c2a235386d08fabeb69f742cf303a5b36c23a06a66147f3f502d24de66",
+    "scalar": "SHA-256 of the ASCII phrase below; a public test key, never for real signing"
+  },
+  "cell_vectors": [
+    {
+      "id": "mem-empty-sentinel",
+      "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "cells": [],
+      "derived": [],
+      "r_init": "c5a959b0cf2043a38c6c75e8f05b0f809bbfdc2ce2e2bbf1f7821d7d1de9d727",
+      "r_init_v1": "c5a959b0cf2043a38c6c75e8f05b0f809bbfdc2ce2e2bbf1f7821d7d1de9d727",
+      "contrast": "r_init_v1 and index_v1 are the konareef-rinit/v1 values for the same input. A v2 implementation MUST NOT produce them, except the empty set, whose root is E20 under both."
+    },
+    {
+      "id": "mem-populated-single",
+      "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "cells": [
+        {
+          "cell_id": 42,
+          "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e"
+        }
+      ],
+      "derived": [
+        {
+          "cell_id_hex": "000000000000002a",
+          "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+          "logical_key": "2020aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa012a",
+          "key_tag": "ba68c1175e1d662b3301db37db671b305ac138430ea0e48f59ddc47e2619ce30",
+          "payload": "23ba68c1175e1d662b3301db37db671b305ac138430ea0e48f59ddc47e2619ce30aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+          "value_hash": "5fcdb4441da74c87b560c1f31c7b970fedade8d6e40969f0ffa2eca0cfd7482e",
+          "leaf_hash": "e57b90a58cf518e75b6d283ba2a9697189fceebf72900663fe37ab5e5f343830",
+          "index": 574729,
+          "index_v1": 863541
+        }
+      ],
+      "r_init": "72eec460c01a294039a03f2b9f888c07e6dbc8f1fb3d37eae7500701eb85a714",
+      "r_init_v1": "2cff847f318a6f449b19b2924fbf1d838a3570dde25c3e2a8ef3b25e4ded0630",
+      "contrast": "r_init_v1 and index_v1 are the konareef-rinit/v1 values for the same input. A v2 implementation MUST NOT produce them, except the empty set, whose root is E20 under both."
+    },
+    {
+      "id": "mem-multi-cell-root",
+      "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "cells": [
+        {
+          "cell_id": 1,
+          "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e"
+        },
+        {
+          "cell_id": 2,
+          "content_hash": "c29aa59cafc9e2437b2c9f0c8772593e63c5fe7b63dee5f9f1b1a8cc3369f919"
+        },
+        {
+          "cell_id": 3,
+          "content_hash": "72b2ac744cd525b6ed060ef36ebf16496b2db6fed6ab44c82b292976b3338349"
+        }
+      ],
+      "derived": [
+        {
+          "cell_id_hex": "0000000000000001",
+          "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+          "logical_key": "2020aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0101",
+          "key_tag": "d597a3b9ed4c4a30ac39b1c2cda44df25b242b8acc2c74a5906f4ef71597d309",
+          "payload": "23d597a3b9ed4c4a30ac39b1c2cda44df25b242b8acc2c74a5906f4ef71597d309aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+          "value_hash": "7c263eb6edd79fcb20f113c7c76bac55ab9d76c112a55617a44b6ba1febf7c08",
+          "leaf_hash": "68f22972c03b4d3b6a3b48b02967c99d63452db5a84d2a720761b018cc428a3c",
+          "index": 559863,
+          "index_v1": 768629
+        },
+        {
+          "cell_id_hex": "0000000000000002",
+          "content_hash": "c29aa59cafc9e2437b2c9f0c8772593e63c5fe7b63dee5f9f1b1a8cc3369f919",
+          "logical_key": "2020aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0102",
+          "key_tag": "0de262823405aafe904f1abb0a119a4254c837d8beaffbbc6aa6e34ff62fbc8c",
+          "payload": "230de262823405aafe904f1abb0a119a4254c837d8beaffbbc6aa6e34ff62fbc8cc29aa59cafc9e2437b2c9f0c8772593e63c5fe7b63dee5f9f1b1a8cc3369f919",
+          "value_hash": "a50e14b4c779a62209e2f0e8560c097bad3bee7941ca265097eaecd12cdc8929",
+          "leaf_hash": "8b4763735b4b1b1ba3634976bdef83b3a10f183e8e19560b43ce084e9c500b27",
+          "index": 869839,
+          "index_v1": 522442
+        },
+        {
+          "cell_id_hex": "0000000000000003",
+          "content_hash": "72b2ac744cd525b6ed060ef36ebf16496b2db6fed6ab44c82b292976b3338349",
+          "logical_key": "2020aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0103",
+          "key_tag": "bf6bfb1d0d29229f724c18a14a3a42730f86ac06e43ee7216a36c8ea997a929b",
+          "payload": "23bf6bfb1d0d29229f724c18a14a3a42730f86ac06e43ee7216a36c8ea997a929b72b2ac744cd525b6ed060ef36ebf16496b2db6fed6ab44c82b292976b3338349",
+          "value_hash": "bfeee54d5df144031c6765fd01ae3149c5ab2616f0c01bd3935591a3a452a43a",
+          "leaf_hash": "952c7658b9cf52235fb5ebb93a3d841c7a244085fa78766b6b8c5d196c37122b",
+          "index": 499826,
+          "index_v1": 563664
+        }
+      ],
+      "r_init": "578a030185ce2bf6598ad42a57a9cfd0ebf65d1046d0ca7a748fb504a9120c19",
+      "r_init_v1": "86ec05dda6bd85f65f477160a7cddee1bb0f7e4b1775d09f1b9c88009ee2871f",
+      "contrast": "r_init_v1 and index_v1 are the konareef-rinit/v1 values for the same input. A v2 implementation MUST NOT produce them, except the empty set, whose root is E20 under both."
+    },
+    {
+      "id": "mem-typeC-disclosed-salt",
+      "pod_salt": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "cells": [
+        {
+          "cell_id": 7,
+          "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e"
+        }
+      ],
+      "derived": [
+        {
+          "cell_id_hex": "0000000000000007",
+          "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+          "logical_key": "2020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0107",
+          "key_tag": "f5349c4031bbe4029fab061127ddddb451044e4d0889010fbdfcb3e815b55b99",
+          "payload": "23f5349c4031bbe4029fab061127ddddb451044e4d0889010fbdfcb3e815b55b99aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+          "value_hash": "ae5233ab5996c6f4a642bc5df458af64c377d0b8be590b22f4f12fa98917191a",
+          "leaf_hash": "0aa7d66f572668496e0d1d0123c5cc82bb2945d7d15d8501f8a6e88cdc77b302",
+          "index": 507300,
+          "index_v1": 979030
+        }
+      ],
+      "r_init": "e141a6c17d53300c96e54369cd54e6409047f8aa4263f0f73b7beb1f6ee8c107",
+      "r_init_v1": "a86a325abc79e95855835915e1d141ef7970c07f8e124a16c66f91538a4e2f08",
+      "contrast": "r_init_v1 and index_v1 are the konareef-rinit/v1 values for the same input. A v2 implementation MUST NOT produce them, except the empty set, whose root is E20 under both."
+    },
+    {
+      "id": "mem-typeD-committed-salt",
+      "pod_salt": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "cells": [
+        {
+          "cell_id": 7,
+          "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e"
+        }
+      ],
+      "derived": [
+        {
+          "cell_id_hex": "0000000000000007",
+          "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+          "logical_key": "2020dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd0107",
+          "key_tag": "bd92935b1dd76f23a66c0272e73b1ae5e7529d1ae9ef7fcb8e5a5b9be4f7a987",
+          "payload": "23bd92935b1dd76f23a66c0272e73b1ae5e7529d1ae9ef7fcb8e5a5b9be4f7a987aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e",
+          "value_hash": "05e6e904faca79c458eee07f35d866e422d2c552282b1c6d044b9976e1e53629",
+          "leaf_hash": "0829113b062ed8f9c27654c2123fa81538302f3aa6be4b4e386ab9c8d13cdb32",
+          "index": 736125,
+          "index_v1": 281525
+        }
+      ],
+      "r_init": "0ddb9cc71b5cab34ea669eb6a4b2331bdb1cf0eec3aa5673b0b946ca32695e29",
+      "r_init_v1": "17e12ec730ac86d4ada06578bb4b9bc4c58abd1cc739238049029c09ad972511",
+      "contrast": "r_init_v1 and index_v1 are the konareef-rinit/v1 values for the same input. A v2 implementation MUST NOT produce them, except the empty set, whose root is E20 under both."
+    }
+  ],
+  "source_vectors": [
+    {
+      "id": "file-single",
+      "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sources": [
+        {
+          "kind": "file",
+          "path": "./memory/notes.md",
+          "file_bytes_utf8": "The pod remembers this line.\n"
+        }
+      ],
+      "derived": [
+        {
+          "cell_id_hex": "81ed77926d26caf9",
+          "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+          "logical_key": "2020aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0af9959be9a6f2ddf68101",
+          "key_tag": "f325fdf84b6ac4d0a65ad787300b758c088b387414d37c4c78a3eea633673556",
+          "payload": "23f325fdf84b6ac4d0a65ad787300b758c088b387414d37c4c78a3eea63367355644610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+          "value_hash": "6ba5591f7c099b461c62cbbaced656a89a2e357391a19efdb75f1d3411f03b18",
+          "leaf_hash": "e7137270c007ba7930f1da687e0e24bad083875f840f02704e065ee80a12c42d",
+          "index": 88286,
+          "index_v1": 383350
+        }
+      ],
+      "r_init": "5bc89f9f6fe55f12727bf4203657b8679eaa93bc50f8904e5d9600eba3242f2b",
+      "r_init_v1": "61facc2c69ff8e93a15d7a8347118254798570973698c14e563837de5c57ae3c",
+      "touched_cell_id": "81ed77926d26caf9",
+      "touched_index": 88286,
+      "touched_declared_position": 0
+    },
+    {
+      "id": "file-inline-file-multi",
+      "pod_salt": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "sources": [
+        {
+          "kind": "file",
+          "path": "./memory/notes.md",
+          "file_bytes_utf8": "The pod remembers this line.\n"
+        },
+        {
+          "kind": "inline",
+          "content": "Prefer primary sources."
+        },
+        {
+          "kind": "file",
+          "path": "./memory/style.md",
+          "file_bytes_utf8": "Use short sentences.\n"
+        }
+      ],
+      "derived": [
+        {
+          "cell_id_hex": "81ed77926d26caf9",
+          "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+          "logical_key": "2020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0af9959be9a6f2ddf68101",
+          "key_tag": "8a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554",
+          "payload": "238a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a96255444610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+          "value_hash": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+          "leaf_hash": "8716b5de8c807a2e43948ff6c48cb365fb327ec109aebef3dc1a97b810738e00",
+          "index": 826048,
+          "index_v1": 737076
+        },
+        {
+          "cell_id_hex": "b6d362e21dfb6bf9",
+          "content_hash": "eb52d91cb3c1f82bf8130a16a857cf9a781dd0596bbd7a9c25db7f4ab826f217",
+          "logical_key": "2020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0af9d7edefa1dcd8e9b601",
+          "key_tag": "87d560bccba13a6c8d1d9b288f44f42242952f578a3ed75a4633fd0dce0819e0",
+          "payload": "2387d560bccba13a6c8d1d9b288f44f42242952f578a3ed75a4633fd0dce0819e0eb52d91cb3c1f82bf8130a16a857cf9a781dd0596bbd7a9c25db7f4ab826f217",
+          "value_hash": "105d78a3c1da0568407f63ce2a20f5f790cdb34a8cd938b2d50e7b71dd4b6026",
+          "leaf_hash": "0d1da0cfb1b958822aef2d80a6b19144dd06c251153dad51ab9cf4ff5a335719",
+          "index": 858034,
+          "index_v1": 631654
+        },
+        {
+          "cell_id_hex": "ffe0ceda9c6103bf",
+          "content_hash": "6b9f2eddfcecbde589714520ffa62ea5d5d676ab7d3677f8c27b2ee72a853dd7",
+          "logical_key": "2020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0abf8784e3a9dbb3f0ff01",
+          "key_tag": "e2284b524de190ce2076437b3a6283a6c82ead896c7a614f94c2859d68f35f27",
+          "payload": "23e2284b524de190ce2076437b3a6283a6c82ead896c7a614f94c2859d68f35f276b9f2eddfcecbde589714520ffa62ea5d5d676ab7d3677f8c27b2ee72a853dd7",
+          "value_hash": "0843c0b113d3214c28642a13ebc8468ae7d8f7d054ae1aae034a004489d47334",
+          "leaf_hash": "05b0bb16c002fed977306601264ed8ab24a491649f9d50a716adcb2f4972262a",
+          "index": 54319,
+          "index_v1": 904808
+        }
+      ],
+      "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+      "r_init_v1": "8f50797705dfd0300c5eafee6a72be93e69c5ea2e4d81ec5c19e6874bfec3430",
+      "touched_cell_id": "81ed77926d26caf9",
+      "touched_index": 826048,
+      "touched_declared_position": 0
+    },
+    {
+      "id": "touched-declared-last",
+      "pod_salt": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "sources": [
+        {
+          "kind": "inline",
+          "content": "Prefer primary sources."
+        },
+        {
+          "kind": "file",
+          "path": "./memory/style.md",
+          "file_bytes_utf8": "Use short sentences.\n"
+        },
+        {
+          "kind": "file",
+          "path": "./memory/notes.md",
+          "file_bytes_utf8": "The pod remembers this line.\n"
+        }
+      ],
+      "derived": [
+        {
+          "cell_id_hex": "81ed77926d26caf9",
+          "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+          "logical_key": "2020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0af9959be9a6f2ddf68101",
+          "key_tag": "8a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554",
+          "payload": "238a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a96255444610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+          "value_hash": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+          "leaf_hash": "8716b5de8c807a2e43948ff6c48cb365fb327ec109aebef3dc1a97b810738e00",
+          "index": 826048,
+          "index_v1": 737076
+        },
+        {
+          "cell_id_hex": "b6d362e21dfb6bf9",
+          "content_hash": "eb52d91cb3c1f82bf8130a16a857cf9a781dd0596bbd7a9c25db7f4ab826f217",
+          "logical_key": "2020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0af9d7edefa1dcd8e9b601",
+          "key_tag": "87d560bccba13a6c8d1d9b288f44f42242952f578a3ed75a4633fd0dce0819e0",
+          "payload": "2387d560bccba13a6c8d1d9b288f44f42242952f578a3ed75a4633fd0dce0819e0eb52d91cb3c1f82bf8130a16a857cf9a781dd0596bbd7a9c25db7f4ab826f217",
+          "value_hash": "105d78a3c1da0568407f63ce2a20f5f790cdb34a8cd938b2d50e7b71dd4b6026",
+          "leaf_hash": "0d1da0cfb1b958822aef2d80a6b19144dd06c251153dad51ab9cf4ff5a335719",
+          "index": 858034,
+          "index_v1": 631654
+        },
+        {
+          "cell_id_hex": "ffe0ceda9c6103bf",
+          "content_hash": "6b9f2eddfcecbde589714520ffa62ea5d5d676ab7d3677f8c27b2ee72a853dd7",
+          "logical_key": "2020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f0abf8784e3a9dbb3f0ff01",
+          "key_tag": "e2284b524de190ce2076437b3a6283a6c82ead896c7a614f94c2859d68f35f27",
+          "payload": "23e2284b524de190ce2076437b3a6283a6c82ead896c7a614f94c2859d68f35f276b9f2eddfcecbde589714520ffa62ea5d5d676ab7d3677f8c27b2ee72a853dd7",
+          "value_hash": "0843c0b113d3214c28642a13ebc8468ae7d8f7d054ae1aae034a004489d47334",
+          "leaf_hash": "05b0bb16c002fed977306601264ed8ab24a491649f9d50a716adcb2f4972262a",
+          "index": 54319,
+          "index_v1": 904808
+        }
+      ],
+      "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+      "r_init_v1": "8f50797705dfd0300c5eafee6a72be93e69c5ea2e4d81ec5c19e6874bfec3430",
+      "touched_cell_id": "81ed77926d26caf9",
+      "touched_index": 826048,
+      "touched_declared_position": 2
+    }
+  ],
+  "leaf_table_vectors": [
+    {
+      "id": "file-single",
+      "source_vector": "file-single",
+      "pod_hash": "63b3c44d16a7a7dcfdebaf0bba2a3ae3e4e06c2b797bb0f356986f4791293b6c",
+      "publisher_pubkey_hex": "02fef3e7c2a235386d08fabeb69f742cf303a5b36c23a06a66147f3f502d24de66",
+      "r_init": "5bc89f9f6fe55f12727bf4203657b8679eaa93bc50f8904e5d9600eba3242f2b",
+      "table_hex": "6b6f6e61726565662d6d656d2d6c65617665732f763263b3c44d16a7a7dcfdebaf0bba2a3ae3e4e06c2b797bb0f356986f4791293b6c5bc89f9f6fe55f12727bf4203657b8679eaa93bc50f8904e5d9600eba3242f2b0000000181ed77926d26caf944610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186f325fdf84b6ac4d0a65ad787300b758c088b387414d37c4c78a3eea633673556000158de6ba5591f7c099b461c62cbbaced656a89a2e357391a19efdb75f1d3411f03b18",
+      "table_sha256": "bcd24c20dc4cfff361d1a401fc25fcd542f806128131bf3550b0773794a6eed6",
+      "signature_b64": "MEQCIHTDkNyR5zfimpXaf7CLjf5jq2xHxhoGADz7vmMND/8lAiA4NG0K5IR78qU6WhvkUjZex2MfPGaQRhmoxbDIW4UfHQ==",
+      "expected": "accept",
+      "refused_by": [],
+      "reef_core_structural": "accept",
+      "why": "Canonical v2 table. Every row's index equals IDX_v2(key_tag), every value_hash equals VH(0x23 ‖ key_tag ‖ content_hash), and the leaves authenticate to r_init."
+    },
+    {
+      "id": "file-inline-file-multi",
+      "source_vector": "file-inline-file-multi",
+      "pod_hash": "0c6f6018d69ae78c27b4284f0a8c5f808f1971afc32d663f14d9cfc0554023c2",
+      "publisher_pubkey_hex": "02fef3e7c2a235386d08fabeb69f742cf303a5b36c23a06a66147f3f502d24de66",
+      "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+      "table_hex": "6b6f6e61726565662d6d656d2d6c65617665732f76320c6f6018d69ae78c27b4284f0a8c5f808f1971afc32d663f14d9cfc0554023c21542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e080000000381ed77926d26caf944610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a471868a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554000c9ac0c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825b6d362e21dfb6bf9eb52d91cb3c1f82bf8130a16a857cf9a781dd0596bbd7a9c25db7f4ab826f21787d560bccba13a6c8d1d9b288f44f42242952f578a3ed75a4633fd0dce0819e0000d17b2105d78a3c1da0568407f63ce2a20f5f790cdb34a8cd938b2d50e7b71dd4b6026ffe0ceda9c6103bf6b9f2eddfcecbde589714520ffa62ea5d5d676ab7d3677f8c27b2ee72a853dd7e2284b524de190ce2076437b3a6283a6c82ead896c7a614f94c2859d68f35f270000d42f0843c0b113d3214c28642a13ebc8468ae7d8f7d054ae1aae034a004489d47334",
+      "table_sha256": "44d2e4a19950e704ec785da9f476be30cc14721a964fc0ec3e5f27875b26ee84",
+      "signature_b64": "MEQCIEsJx03JfAw4rnVL4If40tj6qg/pZWbitVxEaSDPeDhAAiBS12wx/Rc1UYD4G+areS6KkLh3KC/IR93qGbzUuhkbyA==",
+      "expected": "accept",
+      "refused_by": [],
+      "reef_core_structural": "accept",
+      "why": "Canonical v2 table. Every row's index equals IDX_v2(key_tag), every value_hash equals VH(0x23 ‖ key_tag ‖ content_hash), and the leaves authenticate to r_init."
+    },
+    {
+      "id": "touched-declared-last",
+      "source_vector": "touched-declared-last",
+      "pod_hash": "6451bc59ce0fc2b252d4509434ef469fe7c437c3fddc1712dd689149fe54bd9b",
+      "publisher_pubkey_hex": "02fef3e7c2a235386d08fabeb69f742cf303a5b36c23a06a66147f3f502d24de66",
+      "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+      "table_hex": "6b6f6e61726565662d6d656d2d6c65617665732f76326451bc59ce0fc2b252d4509434ef469fe7c437c3fddc1712dd689149fe54bd9b1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e080000000381ed77926d26caf944610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a471868a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554000c9ac0c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825b6d362e21dfb6bf9eb52d91cb3c1f82bf8130a16a857cf9a781dd0596bbd7a9c25db7f4ab826f21787d560bccba13a6c8d1d9b288f44f42242952f578a3ed75a4633fd0dce0819e0000d17b2105d78a3c1da0568407f63ce2a20f5f790cdb34a8cd938b2d50e7b71dd4b6026ffe0ceda9c6103bf6b9f2eddfcecbde589714520ffa62ea5d5d676ab7d3677f8c27b2ee72a853dd7e2284b524de190ce2076437b3a6283a6c82ead896c7a614f94c2859d68f35f270000d42f0843c0b113d3214c28642a13ebc8468ae7d8f7d054ae1aae034a004489d47334",
+      "table_sha256": "8ee4c639a5b771eed11934ae8e8410615d8d39bb0e135e67a5b82043cb8ef2cb",
+      "signature_b64": "MEUCIQCoyMTVXurKSo5eVs9smsJF9mTGRHVRf7TpoX8A87bnjAIgRxHWojvV13w1eJQH/UKTgpjoM0nouYK4FwMdw/SS5S0=",
+      "expected": "accept",
+      "refused_by": [],
+      "reef_core_structural": "accept",
+      "why": "Canonical v2 table. Every row's index equals IDX_v2(key_tag), every value_hash equals VH(0x23 ‖ key_tag ‖ content_hash), and the leaves authenticate to r_init."
+    },
+    {
+      "id": "leaf-table-v2-key-tag-swapped",
+      "source_vector": "file-inline-file-multi",
+      "pod_hash": "0c6f6018d69ae78c27b4284f0a8c5f808f1971afc32d663f14d9cfc0554023c2",
+      "publisher_pubkey_hex": "02fef3e7c2a235386d08fabeb69f742cf303a5b36c23a06a66147f3f502d24de66",
+      "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+      "table_hex": "6b6f6e61726565662d6d656d2d6c65617665732f76320c6f6018d69ae78c27b4284f0a8c5f808f1971afc32d663f14d9cfc0554023c21542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e080000000381ed77926d26caf944610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a4718687d560bccba13a6c8d1d9b288f44f42242952f578a3ed75a4633fd0dce0819e0000c9ac0c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825b6d362e21dfb6bf9eb52d91cb3c1f82bf8130a16a857cf9a781dd0596bbd7a9c25db7f4ab826f2178a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554000d17b2105d78a3c1da0568407f63ce2a20f5f790cdb34a8cd938b2d50e7b71dd4b6026ffe0ceda9c6103bf6b9f2eddfcecbde589714520ffa62ea5d5d676ab7d3677f8c27b2ee72a853dd7e2284b524de190ce2076437b3a6283a6c82ead896c7a614f94c2859d68f35f270000d42f0843c0b113d3214c28642a13ebc8468ae7d8f7d054ae1aae034a004489d47334",
+      "table_sha256": "f03e670a07bb600d60653e06b5286cefdb7aecee92c3ca8f779de3f4a2fedd31",
+      "signature_b64": "MEUCIQCRcd2VK0i95X0ks2SxtJWrw432gcZxvOsrUZBsNa6k4wIgI3q5BSdILYybi2QZGGJF+lK1qJU1TcNs3ZH6INQXDKI=",
+      "expected": "refuse",
+      "expected_refusal": "MEMORY_LEAF_TABLE_INVALID",
+      "refused_by": [
+        "feeder"
+      ],
+      "reef_core_structural": "accept",
+      "why": "Rows 0 and 1 swap key_tag. Signature valid and root valid, but index ≠ IDX_v2(key_tag) and value_hash ≠ VH(0x23 ‖ key_tag ‖ content_hash) on both rows."
+    },
+    {
+      "id": "leaf-table-v2-value-hash-forged",
+      "source_vector": "file-inline-file-multi",
+      "pod_hash": "0c6f6018d69ae78c27b4284f0a8c5f808f1971afc32d663f14d9cfc0554023c2",
+      "publisher_pubkey_hex": "02fef3e7c2a235386d08fabeb69f742cf303a5b36c23a06a66147f3f502d24de66",
+      "r_init": "c207b9e9502bebfb710ea17b72774e40110d2f1e7d9818e10bda9e74c3a63902",
+      "table_hex": "6b6f6e61726565662d6d656d2d6c65617665732f76320c6f6018d69ae78c27b4284f0a8c5f808f1971afc32d663f14d9cfc0554023c2c207b9e9502bebfb710ea17b72774e40110d2f1e7d9818e10bda9e74c3a639020000000381ed77926d26caf944610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a471868a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554000c9ac088706d7b4a91faca042a3c83ef2a3fc0e6d402dbe99292b9b07c389b18bc341db6d362e21dfb6bf9eb52d91cb3c1f82bf8130a16a857cf9a781dd0596bbd7a9c25db7f4ab826f21787d560bccba13a6c8d1d9b288f44f42242952f578a3ed75a4633fd0dce0819e0000d17b2105d78a3c1da0568407f63ce2a20f5f790cdb34a8cd938b2d50e7b71dd4b6026ffe0ceda9c6103bf6b9f2eddfcecbde589714520ffa62ea5d5d676ab7d3677f8c27b2ee72a853dd7e2284b524de190ce2076437b3a6283a6c82ead896c7a614f94c2859d68f35f270000d42f0843c0b113d3214c28642a13ebc8468ae7d8f7d054ae1aae034a004489d47334",
+      "table_sha256": "11d251b3b8ab77b33139c31c1eca7140d43b8a95f315c4e854b4b4492aa794ce",
+      "signature_b64": "MEUCIQDGjN0xjKHyAN0qdarztGMWKX96Dbm8tR/eEqSFu758NQIgXPDmVRZbRK5C/sAcbUBywEUmYIoZXN7NnGJ22/stzeI=",
+      "expected": "refuse",
+      "expected_refusal": "MEMORY_LEAF_TABLE_INVALID",
+      "refused_by": [
+        "feeder"
+      ],
+      "reef_core_structural": "accept",
+      "why": "Row 0 value_hash = VH(0x23 ‖ key_tag ‖ SHA-256(\"forged content\")) and r_init recomputed over the forged leaves. Signature and root valid; value_hash ≠ VH(0x23 ‖ key_tag ‖ content_hash) for row 0. (fields_root would also fail, R-M20 step 3.)"
+    },
+    {
+      "id": "leaf-table-v2-root-mismatch",
+      "source_vector": "file-inline-file-multi",
+      "pod_hash": "0c6f6018d69ae78c27b4284f0a8c5f808f1971afc32d663f14d9cfc0554023c2",
+      "publisher_pubkey_hex": "02fef3e7c2a235386d08fabeb69f742cf303a5b36c23a06a66147f3f502d24de66",
+      "r_init": "8f50797705dfd0300c5eafee6a72be93e69c5ea2e4d81ec5c19e6874bfec3430",
+      "table_hex": "6b6f6e61726565662d6d656d2d6c65617665732f76320c6f6018d69ae78c27b4284f0a8c5f808f1971afc32d663f14d9cfc0554023c28f50797705dfd0300c5eafee6a72be93e69c5ea2e4d81ec5c19e6874bfec34300000000381ed77926d26caf944610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a471868a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554000c9ac0c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825b6d362e21dfb6bf9eb52d91cb3c1f82bf8130a16a857cf9a781dd0596bbd7a9c25db7f4ab826f21787d560bccba13a6c8d1d9b288f44f42242952f578a3ed75a4633fd0dce0819e0000d17b2105d78a3c1da0568407f63ce2a20f5f790cdb34a8cd938b2d50e7b71dd4b6026ffe0ceda9c6103bf6b9f2eddfcecbde589714520ffa62ea5d5d676ab7d3677f8c27b2ee72a853dd7e2284b524de190ce2076437b3a6283a6c82ead896c7a614f94c2859d68f35f270000d42f0843c0b113d3214c28642a13ebc8468ae7d8f7d054ae1aae034a004489d47334",
+      "table_sha256": "3ef1827d0601fd680aa3cae44138c7c64cf5452f9fe591f5ac21f9de6bd55f19",
+      "signature_b64": "MEQCIChhIoVJb+XZN3WK9sdrt9RUVhqCcsbVast+1PxRGfluAiBlPjaoYQ2CmmvUV8Jp7I6WU5GgnOSHnhGRHgj1uSjf2Q==",
+      "expected": "refuse",
+      "expected_refusal": "ERR_RINIT_MISMATCH",
+      "refused_by": [
+        "feeder"
+      ],
+      "reef_core_structural": "accept",
+      "why": "r_init field holds the konareef-rinit/v1 root of the same cells. Rows are valid; the leaves do not authenticate to it."
+    },
+    {
+      "id": "leaf-table-v1-domain",
+      "source_vector": "file-inline-file-multi",
+      "pod_hash": "0c6f6018d69ae78c27b4284f0a8c5f808f1971afc32d663f14d9cfc0554023c2",
+      "publisher_pubkey_hex": "02fef3e7c2a235386d08fabeb69f742cf303a5b36c23a06a66147f3f502d24de66",
+      "r_init": "8f50797705dfd0300c5eafee6a72be93e69c5ea2e4d81ec5c19e6874bfec3430",
+      "table_hex": "6b6f6e61726565662d6d656d2d6c65617665732f76310c6f6018d69ae78c27b4284f0a8c5f808f1971afc32d663f14d9cfc0554023c28f50797705dfd0300c5eafee6a72be93e69c5ea2e4d81ec5c19e6874bfec34300000000381ed77926d26caf944610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186000b3f346ff378c3adbffcde969a6cd17c6d94b5d0d18590606c19221fdc96bb4938061cb6d362e21dfb6bf9eb52d91cb3c1f82bf8130a16a857cf9a781dd0596bbd7a9c25db7f4ab826f2170009a366ed53ee1f6e1d8f75b8d17a0e278c9e535be787238510b1037e92096584cb2311ffe0ceda9c6103bf6b9f2eddfcecbde589714520ffa62ea5d5d676ab7d3677f8c27b2ee72a853dd7000dce684ad4d01196f77e22b93605b60c7824a21ce5741b91a85bf8feffcffbaaf1581c",
+      "table_sha256": "16ae0e476d3c531a7dc654b63a2ad82efcdd0a4c06958fa73ec44fa10c97b044",
+      "signature_b64": "MEUCIQDSLFPFmmhNJA23sxvlPTasOK1bF8vL5fDMX0Ik+3b58wIgWvGjaCvTPuPKCLGP2BdZZqCQeJEjjrdouxY5DPYaWIs=",
+      "expected": "refuse",
+      "expected_refusal": "MEMORY_LEAF_TABLE_INVALID",
+      "refused_by": [
+        "reef-core",
+        "feeder"
+      ],
+      "reef_core_structural": "refuse",
+      "why": "A valid konareef-mem-leaves/v1 table (76-byte rows, no key_tag). A memory-bearing konareef-rinit/v2 manifest accepts only the v2 domain."
+    }
+  ],
+  "touched_cell_vectors": [
+    {
+      "id": "touched-file-single",
+      "source_vector": "file-single",
+      "seam_version": "seam/3",
+      "seam_step_index": 0,
+      "seam_touched_cell_id_json": "\"touched_cell_id\":\"81ed77926d26caf9\"",
+      "touched_cell_id": "81ed77926d26caf9",
+      "ps1_memory_lane": {
+        "r_init": "5bc89f9f6fe55f12727bf4203657b8679eaa93bc50f8904e5d9600eba3242f2b",
+        "index": 88286,
+        "value_hash_in": "6ba5591f7c099b461c62cbbaced656a89a2e357391a19efdb75f1d3411f03b18",
+        "siblings": [
+          "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+          "b332fd99cbed2571bd82c44d182520dc84a1a06ec139163e18568674d22a4f1c",
+          "8e6a1394d79f468d058d407c62edaba3c4db74b9a6be1b178ebde53342ef062b",
+          "09b2f077c2f89b6bb21ca58302a0a06d760c7d815f78174c9153c4c532482c32",
+          "7d97947d10a6a38b83394b4d92d02a5b24ba65624426c9030c0a766fc1969f04",
+          "39987ea089a2e1c5d09cd4b7c8a556d4762e5acaaf6d234d14fa8fd13fe55d31",
+          "004b18cb6b87b2a5a7189a553de143a2c3aacc0212c427cc03f29a07804f8c1b",
+          "f0e47974ba8ca84630a1377080c580747ef470010298fd791abbc82cc89af832",
+          "a7e38c749460224929cf03fad689a47600a83eba52d80fda00848dd6cefffb33",
+          "10491e04b6e7186a0dbf4d855edd6670389c32db404186abdb48144250033834",
+          "baf63f5ed75d4e4c2ada831cca93ce03ec4d1f9ec7d25572ff5d4347fb7a960f",
+          "3b7e70cd3a8598c339ee1609ada789004efcbe421025a59b6a35de85cf15ea29",
+          "c21da0543c94f1f3de4be4df72ba6b36bc1e4d9fa79c4807694ab3297ece9627",
+          "a3cb63bdb68c6447ecb8197fb55173f3e5b9268efe3d7759b41c72a56945f200",
+          "88f2d66c24b4305a0fc271550ef023edf1955691323c2e6308359a521268dc19",
+          "16cfbcc001168db622973fb6f3d6c01aca6e751052e21934b24fd4b9bb537103",
+          "c0b5065eb6f5350fcdc388bc14823ea8aa7ba5b149d9837039e35cdebf90441c",
+          "d3ed797ee96db6975019317ae1ed8a57f85a569f41f28c1d4f16ed9d23659b11",
+          "c670a0256ae35c15bf3bc514a67a531112841c09e7f82c65db65c2daa4d7af3d",
+          "bf5c02e91a397e53931faa99c6a541526962d6afbfd3b395ff220356c22dcf19"
+        ],
+        "key_tag": "f325fdf84b6ac4d0a65ad787300b758c088b387414d37c4c78a3eea633673556",
+        "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186"
+      },
+      "payload_in": "23f325fdf84b6ac4d0a65ad787300b758c088b387414d37c4c78a3eea63367355644610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+      "value_hash_out": "6ba5591f7c099b461c62cbbaced656a89a2e357391a19efdb75f1d3411f03b18",
+      "r_out": "5bc89f9f6fe55f12727bf4203657b8679eaa93bc50f8904e5d9600eba3242f2b",
+      "circuit_id": "konareef-pod-step-v1.2",
+      "authenticates_to_r_init": true
+    },
+    {
+      "id": "touched-file-inline-file-multi",
+      "source_vector": "file-inline-file-multi",
+      "seam_version": "seam/3",
+      "seam_step_index": 0,
+      "seam_touched_cell_id_json": "\"touched_cell_id\":\"81ed77926d26caf9\"",
+      "touched_cell_id": "81ed77926d26caf9",
+      "ps1_memory_lane": {
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "index": 826048,
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "siblings": [
+          "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+          "b332fd99cbed2571bd82c44d182520dc84a1a06ec139163e18568674d22a4f1c",
+          "8e6a1394d79f468d058d407c62edaba3c4db74b9a6be1b178ebde53342ef062b",
+          "09b2f077c2f89b6bb21ca58302a0a06d760c7d815f78174c9153c4c532482c32",
+          "7d97947d10a6a38b83394b4d92d02a5b24ba65624426c9030c0a766fc1969f04",
+          "39987ea089a2e1c5d09cd4b7c8a556d4762e5acaaf6d234d14fa8fd13fe55d31",
+          "004b18cb6b87b2a5a7189a553de143a2c3aacc0212c427cc03f29a07804f8c1b",
+          "f0e47974ba8ca84630a1377080c580747ef470010298fd791abbc82cc89af832",
+          "a7e38c749460224929cf03fad689a47600a83eba52d80fda00848dd6cefffb33",
+          "10491e04b6e7186a0dbf4d855edd6670389c32db404186abdb48144250033834",
+          "baf63f5ed75d4e4c2ada831cca93ce03ec4d1f9ec7d25572ff5d4347fb7a960f",
+          "3b7e70cd3a8598c339ee1609ada789004efcbe421025a59b6a35de85cf15ea29",
+          "c21da0543c94f1f3de4be4df72ba6b36bc1e4d9fa79c4807694ab3297ece9627",
+          "a3cb63bdb68c6447ecb8197fb55173f3e5b9268efe3d7759b41c72a56945f200",
+          "88f2d66c24b4305a0fc271550ef023edf1955691323c2e6308359a521268dc19",
+          "16cfbcc001168db622973fb6f3d6c01aca6e751052e21934b24fd4b9bb537103",
+          "b499838b9ab61fc4a0f4f522fa631cdc8a19571a22dfa6367438134cfc77ba1d",
+          "d3ed797ee96db6975019317ae1ed8a57f85a569f41f28c1d4f16ed9d23659b11",
+          "c670a0256ae35c15bf3bc514a67a531112841c09e7f82c65db65c2daa4d7af3d",
+          "cf850202b252e1d29cb9c533c621f9de7889983b4c0e581bd78e1cc671ec230e"
+        ],
+        "key_tag": "8a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554",
+        "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186"
+      },
+      "payload_in": "238a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a96255444610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+      "value_hash_out": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+      "r_out": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+      "circuit_id": "konareef-pod-step-v1.2",
+      "authenticates_to_r_init": true
+    },
+    {
+      "id": "touched-touched-declared-last",
+      "source_vector": "touched-declared-last",
+      "seam_version": "seam/3",
+      "seam_step_index": 0,
+      "seam_touched_cell_id_json": "\"touched_cell_id\":\"81ed77926d26caf9\"",
+      "touched_cell_id": "81ed77926d26caf9",
+      "ps1_memory_lane": {
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "index": 826048,
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "siblings": [
+          "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+          "b332fd99cbed2571bd82c44d182520dc84a1a06ec139163e18568674d22a4f1c",
+          "8e6a1394d79f468d058d407c62edaba3c4db74b9a6be1b178ebde53342ef062b",
+          "09b2f077c2f89b6bb21ca58302a0a06d760c7d815f78174c9153c4c532482c32",
+          "7d97947d10a6a38b83394b4d92d02a5b24ba65624426c9030c0a766fc1969f04",
+          "39987ea089a2e1c5d09cd4b7c8a556d4762e5acaaf6d234d14fa8fd13fe55d31",
+          "004b18cb6b87b2a5a7189a553de143a2c3aacc0212c427cc03f29a07804f8c1b",
+          "f0e47974ba8ca84630a1377080c580747ef470010298fd791abbc82cc89af832",
+          "a7e38c749460224929cf03fad689a47600a83eba52d80fda00848dd6cefffb33",
+          "10491e04b6e7186a0dbf4d855edd6670389c32db404186abdb48144250033834",
+          "baf63f5ed75d4e4c2ada831cca93ce03ec4d1f9ec7d25572ff5d4347fb7a960f",
+          "3b7e70cd3a8598c339ee1609ada789004efcbe421025a59b6a35de85cf15ea29",
+          "c21da0543c94f1f3de4be4df72ba6b36bc1e4d9fa79c4807694ab3297ece9627",
+          "a3cb63bdb68c6447ecb8197fb55173f3e5b9268efe3d7759b41c72a56945f200",
+          "88f2d66c24b4305a0fc271550ef023edf1955691323c2e6308359a521268dc19",
+          "16cfbcc001168db622973fb6f3d6c01aca6e751052e21934b24fd4b9bb537103",
+          "b499838b9ab61fc4a0f4f522fa631cdc8a19571a22dfa6367438134cfc77ba1d",
+          "d3ed797ee96db6975019317ae1ed8a57f85a569f41f28c1d4f16ed9d23659b11",
+          "c670a0256ae35c15bf3bc514a67a531112841c09e7f82c65db65c2daa4d7af3d",
+          "cf850202b252e1d29cb9c533c621f9de7889983b4c0e581bd78e1cc671ec230e"
+        ],
+        "key_tag": "8a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554",
+        "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186"
+      },
+      "payload_in": "238a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a96255444610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+      "value_hash_out": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+      "r_out": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+      "circuit_id": "konareef-pod-step-v1.2",
+      "authenticates_to_r_init": true
+    }
+  ],
+  "memory_free_vector": {
+    "id": "memory-free",
+    "initial_memory_json": "{\"cells\":[],\"scheme\":\"konareef-mem-src/v1\"}",
+    "touched_cell_id": null,
+    "r_init": "c5a959b0cf2043a38c6c75e8f05b0f809bbfdc2ce2e2bbf1f7821d7d1de9d727",
+    "ps1_memory_lane": null,
+    "circuit_id": "konareef-pod-step-v1.1",
+    "why": "A memory-free run has no touched cell. The seam/3 file MUST NOT carry touched_cell_id, no leaf table is fetched, no memory lane is sent and r_init = E20 (the same under v1 and v2). A touched_cell_id key on a memory-free run is refused with MEMORY_TOUCHED_CELL_INVALID."
+  },
+  "seam3_document_vectors": [
+    {
+      "id": "seam3-file-inline-file-multi",
+      "source_vector": "file-inline-file-multi",
+      "step_disclosure_json": "{\"c\":1234,\"index\":0,\"initial_memory\":{\"cells\":[{\"cell_id\":\"81ed77926d26caf9\",\"content_hash\":\"RGENbhTgVwEePZRLC1qWk+GgqKThSa1Bg3B5HVGkcYY=\"},{\"cell_id\":\"b6d362e21dfb6bf9\",\"content_hash\":\"61LZHLPB+Cv4EwoWqFfPmngd0FlrvXqcJdt/Srgm8hc=\"},{\"cell_id\":\"ffe0ceda9c6103bf\",\"content_hash\":\"a58u3fzsveWJcUUg/6YupdXWdqt9Nnf4wnsu5yqFPdc=\"}],\"scheme\":\"konareef-mem-src/v1\"},\"model\":\"claude-sonnet-4-5\",\"model_id\":\"anthropic/claude-sonnet-4-5\",\"p\":\"c2F5IGhlbGxv\",\"r\":\"ZG9uZQ==\",\"tool_log\":[{\"args_hash\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s=\",\"result_hash\":\"zc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc0=\",\"tool_id\":\"bash\",\"ts_us\":42}],\"touched_cell_id\":\"81ed77926d26caf9\"}",
+      "step_disclosure_sha256": "758a8ebfdadf9202f2a8c045c61af8b40910cad67c5bc75f759ee81ff02bc1f0",
+      "why": "Memory-bearing run: initial_memory lists every committed cell; touched_cell_id is the lowest cell_id (R-M23); index stays the step index 0."
+    },
+    {
+      "id": "seam3-memory-free",
+      "source_vector": "",
+      "step_disclosure_json": "{\"c\":1234,\"index\":0,\"initial_memory\":{\"cells\":[],\"scheme\":\"konareef-mem-src/v1\"},\"model\":\"claude-sonnet-4-5\",\"model_id\":\"anthropic/claude-sonnet-4-5\",\"p\":\"c2F5IGhlbGxv\",\"r\":\"ZG9uZQ==\",\"tool_log\":[{\"args_hash\":\"q6urq6urq6urq6urq6urq6urq6urq6urq6urq6urq6s=\",\"result_hash\":\"zc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc3Nzc0=\",\"tool_id\":\"bash\",\"ts_us\":42}]}",
+      "step_disclosure_sha256": "a283c638c5b231913b87f06659b70f0ca37f74f50d02abc0deb4768d420b056b",
+      "why": "Memory-free run of a published v2/v3 manifest: empty cells and no touched_cell_id key (R-M24)."
+    }
+  ],
+  "negative_vectors": [
+    {
+      "id": "touched-cell-not-lowest",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "feeder"
+      ],
+      "expected_refusal": "MEMORY_TOUCHED_CELL_MISMATCH",
+      "mutation": "seam names a committed cell that is not the lowest cell_id (T-A)",
+      "seam_touched_cell_id_json": "\"touched_cell_id\":\"ffe0ceda9c6103bf\"",
+      "facts": {
+        "rule_value": "81ed77926d26caf9"
+      }
+    },
+    {
+      "id": "touched-cell-uncommitted",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "feeder"
+      ],
+      "expected_refusal": "MEMORY_TOUCHED_CELL_MISMATCH",
+      "mutation": "seam names a well-formed source cell id that the manifest does not commit",
+      "seam_touched_cell_id_json": "\"touched_cell_id\":\"a8da75110ccebf45\"",
+      "facts": {
+        "rule_value": "81ed77926d26caf9"
+      }
+    },
+    {
+      "id": "touched-cell-uppercase",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "feeder"
+      ],
+      "expected_refusal": "MEMORY_TOUCHED_CELL_INVALID",
+      "mutation": "rule value in uppercase hex; only 16 lowercase hex digits are valid",
+      "seam_touched_cell_id_json": "\"touched_cell_id\":\"81ED77926D26CAF9\"",
+      "facts": {
+        "rule_value": "81ed77926d26caf9"
+      }
+    },
+    {
+      "id": "touched-cell-short",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "feeder"
+      ],
+      "expected_refusal": "MEMORY_TOUCHED_CELL_INVALID",
+      "mutation": "15 hex digits",
+      "seam_touched_cell_id_json": "\"touched_cell_id\":\"1ed77926d26caf9\"",
+      "facts": {
+        "rule_value": "81ed77926d26caf9"
+      }
+    },
+    {
+      "id": "touched-cell-not-source-id",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "feeder"
+      ],
+      "expected_refusal": "MEMORY_TOUCHED_CELL_INVALID",
+      "mutation": "bit 63 cleared; a source cell id always has bit 63 set",
+      "seam_touched_cell_id_json": "\"touched_cell_id\":\"01ed77926d26caf9\"",
+      "facts": {
+        "rule_value": "81ed77926d26caf9"
+      }
+    },
+    {
+      "id": "touched-cell-number",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "feeder"
+      ],
+      "expected_refusal": "MEMORY_TOUCHED_CELL_INVALID",
+      "mutation": "JSON number instead of a string",
+      "seam_touched_cell_id_json": "\"touched_cell_id\":9362270671153318649",
+      "facts": {
+        "rule_value": "81ed77926d26caf9"
+      }
+    },
+    {
+      "id": "touched-cell-non-hex",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "feeder"
+      ],
+      "expected_refusal": "MEMORY_TOUCHED_CELL_INVALID",
+      "mutation": "16 lowercase characters, the last two not hex digits; passes a length and lowercase check alone",
+      "seam_touched_cell_id_json": "\"touched_cell_id\":\"81ed77926d26cagz\"",
+      "facts": {
+        "rule_value": "81ed77926d26caf9"
+      }
+    },
+    {
+      "id": "touched-cell-on-memory-free",
+      "base": "memory-free",
+      "refused_by": [
+        "feeder"
+      ],
+      "expected_refusal": "MEMORY_TOUCHED_CELL_INVALID",
+      "mutation": "seam/3 step-disclosure of a memory-free run (initial_memory.cells empty) that carries touched_cell_id; reef-core MUST NOT write this key for a memory-free run (R-M24)",
+      "seam_touched_cell_id_json": "\"touched_cell_id\":\"81ed77926d26caf9\"",
+      "facts": {
+        "rule_value": "none: a memory-free run has no touched cell"
+      }
+    },
+    {
+      "id": "touched-cell-missing",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "feeder"
+      ],
+      "expected_refusal": "MEMORY_TOUCHED_CELL_INVALID",
+      "mutation": "seam/3 step-disclosure of a memory-bearing run with a non-empty initial_memory and no touched_cell_id key",
+      "facts": {
+        "rule_value": "81ed77926d26caf9"
+      }
+    },
+    {
+      "id": "forged-payload-content",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "ps1",
+        "circuit"
+      ],
+      "expected_refusal": "MEMORY_PAYLOAD_MISMATCH",
+      "mutation": "lane content_hash with its last byte XOR 0x01; PS-1 builds payload_in from it",
+      "ps1_memory_lane": {
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "index": 826048,
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "siblings": [
+          "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+          "b332fd99cbed2571bd82c44d182520dc84a1a06ec139163e18568674d22a4f1c",
+          "8e6a1394d79f468d058d407c62edaba3c4db74b9a6be1b178ebde53342ef062b",
+          "09b2f077c2f89b6bb21ca58302a0a06d760c7d815f78174c9153c4c532482c32",
+          "7d97947d10a6a38b83394b4d92d02a5b24ba65624426c9030c0a766fc1969f04",
+          "39987ea089a2e1c5d09cd4b7c8a556d4762e5acaaf6d234d14fa8fd13fe55d31",
+          "004b18cb6b87b2a5a7189a553de143a2c3aacc0212c427cc03f29a07804f8c1b",
+          "f0e47974ba8ca84630a1377080c580747ef470010298fd791abbc82cc89af832",
+          "a7e38c749460224929cf03fad689a47600a83eba52d80fda00848dd6cefffb33",
+          "10491e04b6e7186a0dbf4d855edd6670389c32db404186abdb48144250033834",
+          "baf63f5ed75d4e4c2ada831cca93ce03ec4d1f9ec7d25572ff5d4347fb7a960f",
+          "3b7e70cd3a8598c339ee1609ada789004efcbe421025a59b6a35de85cf15ea29",
+          "c21da0543c94f1f3de4be4df72ba6b36bc1e4d9fa79c4807694ab3297ece9627",
+          "a3cb63bdb68c6447ecb8197fb55173f3e5b9268efe3d7759b41c72a56945f200",
+          "88f2d66c24b4305a0fc271550ef023edf1955691323c2e6308359a521268dc19",
+          "16cfbcc001168db622973fb6f3d6c01aca6e751052e21934b24fd4b9bb537103",
+          "b499838b9ab61fc4a0f4f522fa631cdc8a19571a22dfa6367438134cfc77ba1d",
+          "d3ed797ee96db6975019317ae1ed8a57f85a569f41f28c1d4f16ed9d23659b11",
+          "c670a0256ae35c15bf3bc514a67a531112841c09e7f82c65db65c2daa4d7af3d",
+          "cf850202b252e1d29cb9c533c621f9de7889983b4c0e581bd78e1cc671ec230e"
+        ],
+        "key_tag": "8a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554",
+        "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47187"
+      },
+      "payload_in": "238a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a96255444610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47187",
+      "facts": {
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "value_hash_of_payload_in": "fd27681eac6f6347d14daa5e93e763ab822ba6c339af423d41cdb4b90861c914"
+      }
+    },
+    {
+      "id": "forged-payload-key-tag",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "ps1",
+        "circuit"
+      ],
+      "expected_refusal": "MEMORY_PAYLOAD_MISMATCH",
+      "mutation": "lane key_tag replaced by the key_tag of cell b6d362e21dfb6bf9",
+      "ps1_memory_lane": {
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "index": 826048,
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "siblings": [
+          "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+          "b332fd99cbed2571bd82c44d182520dc84a1a06ec139163e18568674d22a4f1c",
+          "8e6a1394d79f468d058d407c62edaba3c4db74b9a6be1b178ebde53342ef062b",
+          "09b2f077c2f89b6bb21ca58302a0a06d760c7d815f78174c9153c4c532482c32",
+          "7d97947d10a6a38b83394b4d92d02a5b24ba65624426c9030c0a766fc1969f04",
+          "39987ea089a2e1c5d09cd4b7c8a556d4762e5acaaf6d234d14fa8fd13fe55d31",
+          "004b18cb6b87b2a5a7189a553de143a2c3aacc0212c427cc03f29a07804f8c1b",
+          "f0e47974ba8ca84630a1377080c580747ef470010298fd791abbc82cc89af832",
+          "a7e38c749460224929cf03fad689a47600a83eba52d80fda00848dd6cefffb33",
+          "10491e04b6e7186a0dbf4d855edd6670389c32db404186abdb48144250033834",
+          "baf63f5ed75d4e4c2ada831cca93ce03ec4d1f9ec7d25572ff5d4347fb7a960f",
+          "3b7e70cd3a8598c339ee1609ada789004efcbe421025a59b6a35de85cf15ea29",
+          "c21da0543c94f1f3de4be4df72ba6b36bc1e4d9fa79c4807694ab3297ece9627",
+          "a3cb63bdb68c6447ecb8197fb55173f3e5b9268efe3d7759b41c72a56945f200",
+          "88f2d66c24b4305a0fc271550ef023edf1955691323c2e6308359a521268dc19",
+          "16cfbcc001168db622973fb6f3d6c01aca6e751052e21934b24fd4b9bb537103",
+          "b499838b9ab61fc4a0f4f522fa631cdc8a19571a22dfa6367438134cfc77ba1d",
+          "d3ed797ee96db6975019317ae1ed8a57f85a569f41f28c1d4f16ed9d23659b11",
+          "c670a0256ae35c15bf3bc514a67a531112841c09e7f82c65db65c2daa4d7af3d",
+          "cf850202b252e1d29cb9c533c621f9de7889983b4c0e581bd78e1cc671ec230e"
+        ],
+        "key_tag": "87d560bccba13a6c8d1d9b288f44f42242952f578a3ed75a4633fd0dce0819e0",
+        "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186"
+      },
+      "payload_in": "2387d560bccba13a6c8d1d9b288f44f42242952f578a3ed75a4633fd0dce0819e044610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+      "facts": {
+        "index_v2_of_key_tag": "858034",
+        "lane_index": "826048",
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "value_hash_of_payload_in": "29c6f0d966a3cd8a6e435f1f00189050cfb6dec5a4d1428297898ef0de792706"
+      }
+    },
+    {
+      "id": "forged-payload-dtag-v1",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "circuit"
+      ],
+      "expected_refusal": "MEMORY_PAYLOAD_MISMATCH",
+      "mutation": "payload_in byte 0 = 0x21 (the v1 cell tag); the circuit fixes byte 0 = 0x23",
+      "ps1_memory_lane": {
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "index": 826048,
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "siblings": [
+          "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+          "b332fd99cbed2571bd82c44d182520dc84a1a06ec139163e18568674d22a4f1c",
+          "8e6a1394d79f468d058d407c62edaba3c4db74b9a6be1b178ebde53342ef062b",
+          "09b2f077c2f89b6bb21ca58302a0a06d760c7d815f78174c9153c4c532482c32",
+          "7d97947d10a6a38b83394b4d92d02a5b24ba65624426c9030c0a766fc1969f04",
+          "39987ea089a2e1c5d09cd4b7c8a556d4762e5acaaf6d234d14fa8fd13fe55d31",
+          "004b18cb6b87b2a5a7189a553de143a2c3aacc0212c427cc03f29a07804f8c1b",
+          "f0e47974ba8ca84630a1377080c580747ef470010298fd791abbc82cc89af832",
+          "a7e38c749460224929cf03fad689a47600a83eba52d80fda00848dd6cefffb33",
+          "10491e04b6e7186a0dbf4d855edd6670389c32db404186abdb48144250033834",
+          "baf63f5ed75d4e4c2ada831cca93ce03ec4d1f9ec7d25572ff5d4347fb7a960f",
+          "3b7e70cd3a8598c339ee1609ada789004efcbe421025a59b6a35de85cf15ea29",
+          "c21da0543c94f1f3de4be4df72ba6b36bc1e4d9fa79c4807694ab3297ece9627",
+          "a3cb63bdb68c6447ecb8197fb55173f3e5b9268efe3d7759b41c72a56945f200",
+          "88f2d66c24b4305a0fc271550ef023edf1955691323c2e6308359a521268dc19",
+          "16cfbcc001168db622973fb6f3d6c01aca6e751052e21934b24fd4b9bb537103",
+          "b499838b9ab61fc4a0f4f522fa631cdc8a19571a22dfa6367438134cfc77ba1d",
+          "d3ed797ee96db6975019317ae1ed8a57f85a569f41f28c1d4f16ed9d23659b11",
+          "c670a0256ae35c15bf3bc514a67a531112841c09e7f82c65db65c2daa4d7af3d",
+          "cf850202b252e1d29cb9c533c621f9de7889983b4c0e581bd78e1cc671ec230e"
+        ],
+        "key_tag": "8a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554",
+        "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186"
+      },
+      "payload_in": "218a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a96255444610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+      "facts": {
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "value_hash_of_payload_in": "892804ab1a9d50a02552c109bef1d30f664ac71c962a927220fadc4b2f23401f"
+      }
+    },
+    {
+      "id": "forged-payload-length-64",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "circuit"
+      ],
+      "expected_refusal": "MEMORY_PAYLOAD_MISMATCH",
+      "mutation": "payload_in truncated to 64 bytes; the circuit fixes the length at 65",
+      "ps1_memory_lane": {
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "index": 826048,
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "siblings": [
+          "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+          "b332fd99cbed2571bd82c44d182520dc84a1a06ec139163e18568674d22a4f1c",
+          "8e6a1394d79f468d058d407c62edaba3c4db74b9a6be1b178ebde53342ef062b",
+          "09b2f077c2f89b6bb21ca58302a0a06d760c7d815f78174c9153c4c532482c32",
+          "7d97947d10a6a38b83394b4d92d02a5b24ba65624426c9030c0a766fc1969f04",
+          "39987ea089a2e1c5d09cd4b7c8a556d4762e5acaaf6d234d14fa8fd13fe55d31",
+          "004b18cb6b87b2a5a7189a553de143a2c3aacc0212c427cc03f29a07804f8c1b",
+          "f0e47974ba8ca84630a1377080c580747ef470010298fd791abbc82cc89af832",
+          "a7e38c749460224929cf03fad689a47600a83eba52d80fda00848dd6cefffb33",
+          "10491e04b6e7186a0dbf4d855edd6670389c32db404186abdb48144250033834",
+          "baf63f5ed75d4e4c2ada831cca93ce03ec4d1f9ec7d25572ff5d4347fb7a960f",
+          "3b7e70cd3a8598c339ee1609ada789004efcbe421025a59b6a35de85cf15ea29",
+          "c21da0543c94f1f3de4be4df72ba6b36bc1e4d9fa79c4807694ab3297ece9627",
+          "a3cb63bdb68c6447ecb8197fb55173f3e5b9268efe3d7759b41c72a56945f200",
+          "88f2d66c24b4305a0fc271550ef023edf1955691323c2e6308359a521268dc19",
+          "16cfbcc001168db622973fb6f3d6c01aca6e751052e21934b24fd4b9bb537103",
+          "b499838b9ab61fc4a0f4f522fa631cdc8a19571a22dfa6367438134cfc77ba1d",
+          "d3ed797ee96db6975019317ae1ed8a57f85a569f41f28c1d4f16ed9d23659b11",
+          "c670a0256ae35c15bf3bc514a67a531112841c09e7f82c65db65c2daa4d7af3d",
+          "cf850202b252e1d29cb9c533c621f9de7889983b4c0e581bd78e1cc671ec230e"
+        ],
+        "key_tag": "8a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554",
+        "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186"
+      },
+      "payload_in": "238a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a96255444610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a471",
+      "facts": {
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "value_hash_of_payload_in": "cd2d0e5afad5b4001d40b9ab033b0f4e378c1be7feccc5b2c329e4acd777f42a"
+      }
+    },
+    {
+      "id": "wrong-index-other-cell",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "ps1",
+        "circuit"
+      ],
+      "expected_refusal": "MEMORY_INDEX_MISMATCH",
+      "mutation": "lane index = the index of cell b6d362e21dfb6bf9; value, key_tag and siblings unchanged",
+      "ps1_memory_lane": {
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "index": 858034,
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "siblings": [
+          "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+          "b332fd99cbed2571bd82c44d182520dc84a1a06ec139163e18568674d22a4f1c",
+          "8e6a1394d79f468d058d407c62edaba3c4db74b9a6be1b178ebde53342ef062b",
+          "09b2f077c2f89b6bb21ca58302a0a06d760c7d815f78174c9153c4c532482c32",
+          "7d97947d10a6a38b83394b4d92d02a5b24ba65624426c9030c0a766fc1969f04",
+          "39987ea089a2e1c5d09cd4b7c8a556d4762e5acaaf6d234d14fa8fd13fe55d31",
+          "004b18cb6b87b2a5a7189a553de143a2c3aacc0212c427cc03f29a07804f8c1b",
+          "f0e47974ba8ca84630a1377080c580747ef470010298fd791abbc82cc89af832",
+          "a7e38c749460224929cf03fad689a47600a83eba52d80fda00848dd6cefffb33",
+          "10491e04b6e7186a0dbf4d855edd6670389c32db404186abdb48144250033834",
+          "baf63f5ed75d4e4c2ada831cca93ce03ec4d1f9ec7d25572ff5d4347fb7a960f",
+          "3b7e70cd3a8598c339ee1609ada789004efcbe421025a59b6a35de85cf15ea29",
+          "c21da0543c94f1f3de4be4df72ba6b36bc1e4d9fa79c4807694ab3297ece9627",
+          "a3cb63bdb68c6447ecb8197fb55173f3e5b9268efe3d7759b41c72a56945f200",
+          "88f2d66c24b4305a0fc271550ef023edf1955691323c2e6308359a521268dc19",
+          "16cfbcc001168db622973fb6f3d6c01aca6e751052e21934b24fd4b9bb537103",
+          "b499838b9ab61fc4a0f4f522fa631cdc8a19571a22dfa6367438134cfc77ba1d",
+          "d3ed797ee96db6975019317ae1ed8a57f85a569f41f28c1d4f16ed9d23659b11",
+          "c670a0256ae35c15bf3bc514a67a531112841c09e7f82c65db65c2daa4d7af3d",
+          "cf850202b252e1d29cb9c533c621f9de7889983b4c0e581bd78e1cc671ec230e"
+        ],
+        "key_tag": "8a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554",
+        "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186"
+      },
+      "facts": {
+        "index_v2_of_key_tag": "826048",
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "recomputed_root": "8d6c22cbd8c878638be3ca464f82d86646d1a544c668a59cb7aab27feb88d939"
+      }
+    },
+    {
+      "id": "wrong-index-flip-bit0",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "ps1",
+        "circuit"
+      ],
+      "expected_refusal": "MEMORY_INDEX_MISMATCH",
+      "mutation": "lane index with bit 0 flipped; value, key_tag and siblings unchanged",
+      "ps1_memory_lane": {
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "index": 826049,
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "siblings": [
+          "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+          "b332fd99cbed2571bd82c44d182520dc84a1a06ec139163e18568674d22a4f1c",
+          "8e6a1394d79f468d058d407c62edaba3c4db74b9a6be1b178ebde53342ef062b",
+          "09b2f077c2f89b6bb21ca58302a0a06d760c7d815f78174c9153c4c532482c32",
+          "7d97947d10a6a38b83394b4d92d02a5b24ba65624426c9030c0a766fc1969f04",
+          "39987ea089a2e1c5d09cd4b7c8a556d4762e5acaaf6d234d14fa8fd13fe55d31",
+          "004b18cb6b87b2a5a7189a553de143a2c3aacc0212c427cc03f29a07804f8c1b",
+          "f0e47974ba8ca84630a1377080c580747ef470010298fd791abbc82cc89af832",
+          "a7e38c749460224929cf03fad689a47600a83eba52d80fda00848dd6cefffb33",
+          "10491e04b6e7186a0dbf4d855edd6670389c32db404186abdb48144250033834",
+          "baf63f5ed75d4e4c2ada831cca93ce03ec4d1f9ec7d25572ff5d4347fb7a960f",
+          "3b7e70cd3a8598c339ee1609ada789004efcbe421025a59b6a35de85cf15ea29",
+          "c21da0543c94f1f3de4be4df72ba6b36bc1e4d9fa79c4807694ab3297ece9627",
+          "a3cb63bdb68c6447ecb8197fb55173f3e5b9268efe3d7759b41c72a56945f200",
+          "88f2d66c24b4305a0fc271550ef023edf1955691323c2e6308359a521268dc19",
+          "16cfbcc001168db622973fb6f3d6c01aca6e751052e21934b24fd4b9bb537103",
+          "b499838b9ab61fc4a0f4f522fa631cdc8a19571a22dfa6367438134cfc77ba1d",
+          "d3ed797ee96db6975019317ae1ed8a57f85a569f41f28c1d4f16ed9d23659b11",
+          "c670a0256ae35c15bf3bc514a67a531112841c09e7f82c65db65c2daa4d7af3d",
+          "cf850202b252e1d29cb9c533c621f9de7889983b4c0e581bd78e1cc671ec230e"
+        ],
+        "key_tag": "8a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554",
+        "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186"
+      },
+      "facts": {
+        "index_v2_of_key_tag": "826048",
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "recomputed_root": "989902cacc5a20fc85571c1ad9e770a06fa532340e3b3c8b28cac78317e12d27"
+      }
+    },
+    {
+      "id": "empty-slot-read",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "feeder",
+        "ps1",
+        "circuit"
+      ],
+      "expected_refusal": "MEMORY_EMPTY_SLOT_READ",
+      "mutation": "lane names an empty index with value_hash_in = 0 and a valid empty-leaf path; key_tag and content_hash of the touched cell",
+      "ps1_memory_lane": {
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "index": 0,
+        "value_hash_in": "0000000000000000000000000000000000000000000000000000000000000000",
+        "siblings": [
+          "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+          "b332fd99cbed2571bd82c44d182520dc84a1a06ec139163e18568674d22a4f1c",
+          "8e6a1394d79f468d058d407c62edaba3c4db74b9a6be1b178ebde53342ef062b",
+          "09b2f077c2f89b6bb21ca58302a0a06d760c7d815f78174c9153c4c532482c32",
+          "7d97947d10a6a38b83394b4d92d02a5b24ba65624426c9030c0a766fc1969f04",
+          "39987ea089a2e1c5d09cd4b7c8a556d4762e5acaaf6d234d14fa8fd13fe55d31",
+          "004b18cb6b87b2a5a7189a553de143a2c3aacc0212c427cc03f29a07804f8c1b",
+          "f0e47974ba8ca84630a1377080c580747ef470010298fd791abbc82cc89af832",
+          "a7e38c749460224929cf03fad689a47600a83eba52d80fda00848dd6cefffb33",
+          "10491e04b6e7186a0dbf4d855edd6670389c32db404186abdb48144250033834",
+          "baf63f5ed75d4e4c2ada831cca93ce03ec4d1f9ec7d25572ff5d4347fb7a960f",
+          "3b7e70cd3a8598c339ee1609ada789004efcbe421025a59b6a35de85cf15ea29",
+          "c21da0543c94f1f3de4be4df72ba6b36bc1e4d9fa79c4807694ab3297ece9627",
+          "a3cb63bdb68c6447ecb8197fb55173f3e5b9268efe3d7759b41c72a56945f200",
+          "88f2d66c24b4305a0fc271550ef023edf1955691323c2e6308359a521268dc19",
+          "2e69e5bddc2ca1fee8cf19c34bab30df10fc56c6e3d7155d20ce9e658eb54321",
+          "c0b5065eb6f5350fcdc388bc14823ea8aa7ba5b149d9837039e35cdebf90441c",
+          "d3ed797ee96db6975019317ae1ed8a57f85a569f41f28c1d4f16ed9d23659b11",
+          "c670a0256ae35c15bf3bc514a67a531112841c09e7f82c65db65c2daa4d7af3d",
+          "93a29494daba5c7e8a86cbd4c52c2412664aab163332c9adc8f65e6b811bc200"
+        ],
+        "key_tag": "8a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554",
+        "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186"
+      },
+      "payload_in": "238a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a96255444610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186",
+      "facts": {
+        "authenticates_with_empty_leaf": "true (accepted by konareef-pod-step-v1.1, design fact T4)",
+        "index_in_leaf_table": "false",
+        "value_hash_of_payload_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825"
+      }
+    },
+    {
+      "id": "write-under-read-only",
+      "base": "file-inline-file-multi",
+      "refused_by": [
+        "ps1",
+        "circuit",
+        "verifier"
+      ],
+      "expected_refusal": "MEMORY_WRITE_REFUSED",
+      "mutation": "honest lane, but the step writes value_hash_out = VH(0x23 ‖ key_tag ‖ SHA-256(\"written by the run\")) (W-A forbids any write)",
+      "ps1_memory_lane": {
+        "r_init": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "index": 826048,
+        "value_hash_in": "c569085cf74d8597e5e4a3644e8aaeebfcd37c723c6991e57310a1aea2b9f825",
+        "siblings": [
+          "08ded359916be7431a0e64013d0e29b45b8476c4cd05a8e49943b06d129be000",
+          "b332fd99cbed2571bd82c44d182520dc84a1a06ec139163e18568674d22a4f1c",
+          "8e6a1394d79f468d058d407c62edaba3c4db74b9a6be1b178ebde53342ef062b",
+          "09b2f077c2f89b6bb21ca58302a0a06d760c7d815f78174c9153c4c532482c32",
+          "7d97947d10a6a38b83394b4d92d02a5b24ba65624426c9030c0a766fc1969f04",
+          "39987ea089a2e1c5d09cd4b7c8a556d4762e5acaaf6d234d14fa8fd13fe55d31",
+          "004b18cb6b87b2a5a7189a553de143a2c3aacc0212c427cc03f29a07804f8c1b",
+          "f0e47974ba8ca84630a1377080c580747ef470010298fd791abbc82cc89af832",
+          "a7e38c749460224929cf03fad689a47600a83eba52d80fda00848dd6cefffb33",
+          "10491e04b6e7186a0dbf4d855edd6670389c32db404186abdb48144250033834",
+          "baf63f5ed75d4e4c2ada831cca93ce03ec4d1f9ec7d25572ff5d4347fb7a960f",
+          "3b7e70cd3a8598c339ee1609ada789004efcbe421025a59b6a35de85cf15ea29",
+          "c21da0543c94f1f3de4be4df72ba6b36bc1e4d9fa79c4807694ab3297ece9627",
+          "a3cb63bdb68c6447ecb8197fb55173f3e5b9268efe3d7759b41c72a56945f200",
+          "88f2d66c24b4305a0fc271550ef023edf1955691323c2e6308359a521268dc19",
+          "16cfbcc001168db622973fb6f3d6c01aca6e751052e21934b24fd4b9bb537103",
+          "b499838b9ab61fc4a0f4f522fa631cdc8a19571a22dfa6367438134cfc77ba1d",
+          "d3ed797ee96db6975019317ae1ed8a57f85a569f41f28c1d4f16ed9d23659b11",
+          "c670a0256ae35c15bf3bc514a67a531112841c09e7f82c65db65c2daa4d7af3d",
+          "cf850202b252e1d29cb9c533c621f9de7889983b4c0e581bd78e1cc671ec230e"
+        ],
+        "key_tag": "8a6b66f784be8a9d4578f8c5d0bdb54f1dc3c85bce8dbda7ca7ff9931a962554",
+        "content_hash": "44610d6e14e057011e3d944b0b5a9693e1a0a8a4e149ad418370791d51a47186"
+      },
+      "facts": {
+        "r_in": "1542b33f2c40bff45753cfb9440bdd88d5e87da847e4e56529b95746a47c1e08",
+        "r_out": "be981600853e00f6739f05247b6e2ce3f11b244887687da5b000c26ac5479d02",
+        "value_hash_out": "ba0420dc2960bd9856efcf2b317022113d4f5f93f741c9c2dc8360b53940d929"
+      }
+    }
+  ],
+  "derivation_negative_vectors": [
+    {
+      "id": "derivation-duplicate-cell-id",
+      "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "cells": [
+        {
+          "cell_id": 1,
+          "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e"
+        },
+        {
+          "cell_id": 1,
+          "content_hash": "c29aa59cafc9e2437b2c9f0c8772593e63c5fe7b63dee5f9f1b1a8cc3369f919"
+        }
+      ],
+      "expected_refusal": "ERR_CELL_DUPLICATE_ID",
+      "indices_v2": [],
+      "why": "two cells with one cell_id"
+    },
+    {
+      "id": "derivation-salt-31-bytes",
+      "pod_salt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "cells": [
+        {
+          "cell_id": 1,
+          "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e"
+        }
+      ],
+      "expected_refusal": "ERR_CELL_SALT_LEN",
+      "indices_v2": [],
+      "why": "pod_salt must be exactly 32 bytes"
+    },
+    {
+      "id": "derivation-index-collision",
+      "pod_salt": "1df13ba17d3d8d40b7b829aaf8ff2ac35219d2ee9fcbd489761a7221ab567ab3",
+      "cells": [
+        {
+          "cell_id": 1,
+          "content_hash": "aae0a971434ea3f6973aa77b266bd53ddae16abad964cd06ff44ecc799c5679e"
+        },
+        {
+          "cell_id": 2,
+          "content_hash": "c29aa59cafc9e2437b2c9f0c8772593e63c5fe7b63dee5f9f1b1a8cc3369f919"
+        }
+      ],
+      "expected_refusal": "ERR_CELL_INDEX_COLLISION",
+      "indices_v2": [
+        19964,
+        19964
+      ],
+      "why": "salt = SHA-256(\"konareef-rinit/v2 collision search\" ‖ be_u32(570199)), the first counter under which cells 1 and 2 share a v2 index; no relocation (R-M8)"
+    }
+  ]
+}

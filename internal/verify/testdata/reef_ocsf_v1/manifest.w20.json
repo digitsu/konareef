@@ -1,0 +1,19 @@
+{
+  "rule": "reef-ocsf/v1",
+  "vectors": [
+    {
+      "name": "w20_run",
+      "file": "w20_run.records",
+      "record_count": 15,
+      "root": "0b894377c3231d2cc68321abc2c8aba2fabba29cdc9476a70f4fd054460dc8e8",
+      "description": "a W20 run: one LLM POST on run_port and the MCP session on run_mcp_port (initialize, notifications/initialized, tools/list, tools/call openbrain.recall, tools/call jira.get_issue, a batch of both, one denied tools/call); every tools= value is complete"
+    },
+    {
+      "name": "w20_cut",
+      "file": "w20_cut.records",
+      "record_count": 9,
+      "root": "a0f2f5f47360a8a5afbe4e0fe850db6b3c42c9f94be9cb7b486056d6998864a8",
+      "description": "a W20 run with two allowed tools/call records: tools=openbrain.recall followed by a space (complete) and a 100-character brokered name cut after 56 characters (incomplete)"
+    }
+  ]
+}

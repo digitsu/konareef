@@ -1,0 +1,8 @@
+#!konareef-toml/v1
+[s]
+created = 2026-05-21T13:42:08.000000Z
+flag_off = false
+flag_on = true
+hi_precision = 2026-05-21T13:42:08.123456Z
+precise = 2026-05-21T13:42:08.500000Z
+[_files]

@@ -1,0 +1,146 @@
+{
+  "description": "Shared cases for the brokered-MCP-grant / [network].egress double-declaration rule. reef-core drives every case through Pod.Spec.SpawnerAdapter (test/pod/spec/mcp_egress_conflicts_fixture_test.exs). konareef vendors this file for its local validator (GATEWAY_MCP_HOST_ALSO_EGRESS). Change both copies together. See README.md in this directory for the wire shape.",
+  "version": 1,
+  "cases": [
+    {
+      "name": "exact host, default port",
+      "egress": ["mcp.example.com"],
+      "gateway": [{"host": "mcp.example.com", "protocol": "mcp"}],
+      "expected": {
+        "hosts": ["mcp.example.com"],
+        "conflicts": [
+          {"grant": "mcp.example.com", "grant_index": 0, "authority": "mcp.example.com:443", "egress": "mcp.example.com", "egress_index": 0}
+        ]
+      }
+    },
+    {
+      "name": "wildcard rule names the wildcard, not an absent literal",
+      "egress": ["api.unrelated.com", "*.example.com"],
+      "gateway": [{"host": "mcp.example.com", "protocol": "mcp"}],
+      "expected": {
+        "hosts": ["mcp.example.com"],
+        "conflicts": [
+          {"grant": "mcp.example.com", "grant_index": 0, "authority": "mcp.example.com:443", "egress": "*.example.com", "egress_index": 1}
+        ]
+      }
+    },
+    {
+      "name": "grant default port, egress explicit 443",
+      "egress": ["mcp.example.com:443"],
+      "gateway": [{"host": "mcp.example.com", "protocol": "mcp"}],
+      "expected": {
+        "hosts": ["mcp.example.com"],
+        "conflicts": [
+          {"grant": "mcp.example.com", "grant_index": 0, "authority": "mcp.example.com:443", "egress": "mcp.example.com:443", "egress_index": 0}
+        ]
+      }
+    },
+    {
+      "name": "leading-zero port is the same authority",
+      "egress": ["mcp.example.com:0443"],
+      "gateway": [{"host": "mcp.example.com", "protocol": "mcp"}],
+      "expected": {
+        "hosts": ["mcp.example.com"],
+        "conflicts": [
+          {"grant": "mcp.example.com", "grant_index": 0, "authority": "mcp.example.com:443", "egress": "mcp.example.com:0443", "egress_index": 0}
+        ]
+      }
+    },
+    {
+      "name": "same explicit non-default port on both sides",
+      "egress": ["mcp.example.com:8443"],
+      "gateway": [{"host": "mcp.example.com:8443", "protocol": "mcp"}],
+      "expected": {
+        "hosts": ["mcp.example.com:8443"],
+        "conflicts": [
+          {"grant": "mcp.example.com:8443", "grant_index": 0, "authority": "mcp.example.com:8443", "egress": "mcp.example.com:8443", "egress_index": 0}
+        ]
+      }
+    },
+    {
+      "name": "wildcard with the same explicit port",
+      "egress": ["*.example.com:8443"],
+      "gateway": [{"host": "mcp.example.com:8443", "protocol": "mcp"}],
+      "expected": {
+        "hosts": ["mcp.example.com:8443"],
+        "conflicts": [
+          {"grant": "mcp.example.com:8443", "grant_index": 0, "authority": "mcp.example.com:8443", "egress": "*.example.com:8443", "egress_index": 0}
+        ]
+      }
+    },
+    {
+      "name": "different port on the egress side is not a conflict",
+      "egress": ["mcp.example.com:8443", "*.example.com:8443"],
+      "gateway": [{"host": "mcp.example.com", "protocol": "mcp"}],
+      "expected": {"hosts": [], "conflicts": []}
+    },
+    {
+      "name": "different port on the grant side is not a conflict",
+      "egress": ["mcp.example.com", "*.example.com"],
+      "gateway": [{"host": "mcp.example.com:8443", "protocol": "mcp"}],
+      "expected": {"hosts": [], "conflicts": []}
+    },
+    {
+      "name": "wildcard does not match the bare suffix",
+      "egress": ["*.example.com"],
+      "gateway": [{"host": "example.com", "protocol": "mcp"}],
+      "expected": {"hosts": [], "conflicts": []}
+    },
+    {
+      "name": "case differs; authored spellings are returned unchanged",
+      "egress": ["MCP.Example.COM"],
+      "gateway": [{"host": "Mcp.Example.Com", "protocol": "mcp"}],
+      "expected": {
+        "hosts": ["Mcp.Example.Com"],
+        "conflicts": [
+          {"grant": "Mcp.Example.Com", "grant_index": 0, "authority": "mcp.example.com:443", "egress": "MCP.Example.COM", "egress_index": 0}
+        ]
+      }
+    },
+    {
+      "name": "one grant matched by several rules, in egress order",
+      "egress": ["mcp.example.com", "api.unrelated.com", "*.example.com"],
+      "gateway": [{"host": "mcp.example.com", "protocol": "mcp"}],
+      "expected": {
+        "hosts": ["mcp.example.com"],
+        "conflicts": [
+          {"grant": "mcp.example.com", "grant_index": 0, "authority": "mcp.example.com:443", "egress": "mcp.example.com", "egress_index": 0},
+          {"grant": "mcp.example.com", "grant_index": 0, "authority": "mcp.example.com:443", "egress": "*.example.com", "egress_index": 2}
+        ]
+      }
+    },
+    {
+      "name": "several grants; indexes count every gateway entry; http entries never conflict",
+      "egress": ["*.example.com"],
+      "gateway": [
+        {"host": "api.example.com", "protocol": "http"},
+        {"host": "b.example.com", "protocol": "mcp"},
+        {"host": "a.example.com", "protocol": "mcp"}
+      ],
+      "expected": {
+        "hosts": ["a.example.com", "b.example.com"],
+        "conflicts": [
+          {"grant": "b.example.com", "grant_index": 1, "authority": "b.example.com:443", "egress": "*.example.com", "egress_index": 0},
+          {"grant": "a.example.com", "grant_index": 2, "authority": "a.example.com:443", "egress": "*.example.com", "egress_index": 0}
+        ]
+      }
+    },
+    {
+      "name": "http gateway host also in egress is allowed",
+      "egress": ["api.example.com"],
+      "gateway": [{"host": "api.example.com", "protocol": "http"}],
+      "expected": {"hosts": [], "conflicts": []}
+    },
+    {
+      "name": "bracketed IPv6 authority",
+      "egress": ["[2001:db8::1]:8443"],
+      "gateway": [{"host": "[2001:db8::1]:8443", "protocol": "mcp"}],
+      "expected": {
+        "hosts": ["[2001:db8::1]:8443"],
+        "conflicts": [
+          {"grant": "[2001:db8::1]:8443", "grant_index": 0, "authority": "[2001:db8::1]:8443", "egress": "[2001:db8::1]:8443", "egress_index": 0}
+        ]
+      }
+    }
+  ]
+}

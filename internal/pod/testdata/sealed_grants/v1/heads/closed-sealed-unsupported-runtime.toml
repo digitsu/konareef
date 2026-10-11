@@ -1,0 +1,30 @@
+pod_spec_version = "0.1"
+
+[pod]
+name = "sealed-grants-fixture"
+version = "1.0.0"
+visibility = "closed"
+
+[runtime]
+kind = "pi-agent"
+execution_class = "cloud"
+
+[directive]
+template = "./prompts/task.md"
+max_iterations = 1
+
+[budget]
+max_sats = 1000
+
+[dependencies]
+secrets = ["PUBLIC_DEP_TOKEN"]
+
+[network]
+egress = ["api.public-dep.example", "*.public-wild.example", "mcp.public-port.example"]
+sealed_grants = "konareef-sealed-grants/v1"
+
+[[network.gateway]]
+host = "pay.public-dep.example"
+secret = "PUBLIC_DEP_TOKEN"
+auth = "bearer"
+max_calls = 10

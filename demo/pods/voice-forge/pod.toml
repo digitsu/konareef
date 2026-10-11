@@ -1,0 +1,86 @@
+pod_spec_version = "0.1"
+
+[pod]
+name = "voice-forge"
+version = "0.2.0"
+description = "Single-shot demo: speaks the requested text as an mp3 in a given (or default) ElevenLabs voice. Runs the whole workflow in one bash call, well within the Type-C pod-step circuit's 16-record tool-log cap."
+authors = ["Jerry David Chan"]
+license = "Apache-2.0"
+tags = ["demo", "voice", "elevenlabs", "tts"]
+lineage_id = "921eb9a712c0f384e104a3f7f770ffe5"
+
+[runtime]
+kind = "lobster"
+version = "^0.1"
+
+[model]
+provider = "anthropic"
+name = "claude-sonnet-4-5"
+
+# Declared tool allowlist. The opencode agent does its work through `bash`
+# (curl/jq/ffmpeg/yt-dlp all run under it). The Type-C pod-step circuit
+# requires >=1 declared tool, and every runtime tool call is checked to be a
+# member of this allowlist.
+[[context.tools]]
+source = "bash"
+
+[dependencies]
+system = ["curl", "jq", "ffmpeg"]
+secrets = ["ELEVENLABS_API_KEY"]
+
+# The paid host is reached through the reef-core egress gateway. The
+# gateway holds ELEVENLABS_API_KEY and attaches it; the pod never sees it.
+# max_calls = 2 allows the one text-to-speech call plus one retry.
+[network]
+
+[[network.gateway]]
+host = "api.elevenlabs.io"
+secret = "ELEVENLABS_API_KEY"
+auth = "header:xi-api-key"
+max_calls = 2
+
+[inputs]
+speak_text = { type = "string", required = true, description = "Text the voice will speak. The pod refuses more than 5000 characters." }
+voice_id = { type = "string", required = false, description = "An existing ElevenLabs voice id to speak with; defaults to Rachel (21m00Tcm4TlvDq8ikWAM)" }
+
+[directive]
+template = "./prompts/system.md"
+# The whole workflow runs in a single bash call, so the tool-log stays at one
+# record even with a couple of agent iterations. The v1 hard cap is |T_log| = 16
+# (circuit-spec §7; the reef-core tool-log capacity limit), and 4 is the nominal cost
+# profile, not a cap — see README.md. Neither binds here.
+max_iterations = 4
+
+[output]
+format = "markdown"
+
+[[output.success]]
+kind = "file_exists"
+path = "./output/speech.mp3"
+
+[[output.success]]
+kind = "file_exists"
+path = "./output/report.md"
+
+[[output.failure]]
+kind = "timeout_seconds"
+value = 900
+
+[[output.failure]]
+kind = "budget_exhausted"
+
+[[output.deliverables]]
+path = "./output/speech.mp3"
+description = "The synthesized speech audio"
+optional = false
+
+[[output.deliverables]]
+path = "./output/report.md"
+description = "Run report: mode used, voice ID, characters sent"
+optional = false
+
+# Run budget in satoshis. It covers the LLM steps and the gateway's
+# per-call floor for the ElevenLabs request. The character count is
+# bounded by the input description, not by this number.
+[budget]
+max_sats = 5000

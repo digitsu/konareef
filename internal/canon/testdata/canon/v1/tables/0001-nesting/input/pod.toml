@@ -1,0 +1,16 @@
+[zebra]
+z = 1
+
+[alpha]
+a = 1
+
+[alpha.nested]
+n = 2
+
+[[items]]
+name = "second"
+rank = 2
+
+[[items]]
+name = "first"
+rank = 1

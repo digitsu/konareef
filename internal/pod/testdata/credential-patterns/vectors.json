@@ -1,0 +1,674 @@
+{
+  "format": "konareef-credential-vectors/v2",
+  "_comment": "Shared credential-pattern vectors (SECRET-SCAN). internal/pod/credentials_test.go checks the konareef scanner against this file. The reef-core scanner (SECRET-SCAN-R, reef-core#88) reads the same file and must return the same findings and digests. Engine rule: compile each pattern from internal/pod/credentials.go with no UTF and no UCP flag (in Elixir, no `u` modifier) and match over the raw bytes of each line; with UTF or UCP, `\\b` treats non-ASCII letters as word characters and the non-ascii-* vectors fail. Before matching, replace every backslash followed by n, r or t in the line with two spaces. A change here needs a matching change on the other side in a linked MR. No vector holds a whole credential-shaped string: each vector's text is the concatenation of its `parts`, so a secret scanner reading this file sees no key, and a consumer joins the parts in memory. The values are made up and are not credentials. Raw invalid UTF-8 cannot be written in a JSON string, so it has no vector; no pattern uses `.` or a negated class, so a byte that is not ASCII is a non-word byte in both engines.",
+  "scanner_version": "v2",
+  "classes": [
+    "anthropic_api_key",
+    "openai_api_key",
+    "aws_access_key_id",
+    "github_token",
+    "gitlab_token",
+    "slack_token",
+    "private_key_block",
+    "jwt"
+  ],
+  "vectors": [
+    {
+      "id": "anthropic-positive",
+      "class": "anthropic_api_key",
+      "parts": [
+        "api_key = \"",
+        "sk-ant-",
+        "api03-",
+        "FAKEFAKEFAKEFAKEFAKE0123",
+        "\""
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "anthropic_api_key",
+          "sha256": [
+            "291d300418781e92"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anthropic-near-miss-no-body",
+      "class": "anthropic_api_key",
+      "parts": [
+        "Keys start with ",
+        "sk-ant-",
+        " and are secret."
+      ],
+      "note": "prefix with no key body",
+      "findings": []
+    },
+    {
+      "id": "anthropic-near-miss-short-body",
+      "class": "anthropic_api_key",
+      "parts": [
+        "sk-ant-",
+        "api03-short"
+      ],
+      "note": "body under 20 characters",
+      "findings": []
+    },
+    {
+      "id": "openai-proj-positive",
+      "class": "openai_api_key",
+      "parts": [
+        "OPENAI_API_KEY=",
+        "sk-proj-",
+        "FAKEFAKEFAKEFAKEFAKE0123_-x"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "openai_api_key",
+          "sha256": [
+            "0dd48f7757483705"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "openai-legacy-positive",
+      "class": "openai_api_key",
+      "parts": [
+        "key: ",
+        "sk-",
+        "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE12"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "openai_api_key",
+          "sha256": [
+            "c9aabc2064375800"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "openai-near-miss-prefix-only",
+      "class": "openai_api_key",
+      "parts": [
+        "sk-proj-"
+      ],
+      "findings": []
+    },
+    {
+      "id": "openai-near-miss-word-boundary",
+      "class": "openai_api_key",
+      "parts": [
+        "Use the risk-",
+        "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE12",
+        " model."
+      ],
+      "note": "sk- inside a longer word is not a key prefix",
+      "findings": []
+    },
+    {
+      "id": "openai-near-miss-short-legacy",
+      "class": "openai_api_key",
+      "parts": [
+        "sk-",
+        "FAKEFAKE12"
+      ],
+      "findings": []
+    },
+    {
+      "id": "aws-akia-positive",
+      "class": "aws_access_key_id",
+      "parts": [
+        "aws_access_key_id = ",
+        "AKIA",
+        "FAKEFAKEFAKEFAKE"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "aws_access_key_id",
+          "sha256": [
+            "228e2fa94b1e1b9c"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "aws-asia-positive",
+      "class": "aws_access_key_id",
+      "parts": [
+        "ASIA",
+        "FAKEFAKEFAKEFAKE",
+        ")"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "aws_access_key_id",
+          "sha256": [
+            "d4c8e9cd5dd859fa"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "aws-near-miss-15",
+      "class": "aws_access_key_id",
+      "parts": [
+        "AKIA",
+        "FAKEFAKEFAKEFAK"
+      ],
+      "note": "only 15 characters after the prefix",
+      "findings": []
+    },
+    {
+      "id": "aws-near-miss-longer-run",
+      "class": "aws_access_key_id",
+      "parts": [
+        "AKIA",
+        "FAKEFAKEFAKEFAKE",
+        "X"
+      ],
+      "note": "a 21-character run is not an access key id",
+      "findings": []
+    },
+    {
+      "id": "aws-near-miss-lowercase",
+      "class": "aws_access_key_id",
+      "parts": [
+        "AKIA",
+        "fakefakefakefake"
+      ],
+      "findings": []
+    },
+    {
+      "id": "github-ghp-positive",
+      "class": "github_token",
+      "parts": [
+        "token ",
+        "ghp_",
+        "FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE1234"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "github_token",
+          "sha256": [
+            "61dc91742896360b"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "github-pat-positive",
+      "class": "github_token",
+      "parts": [
+        "GH=",
+        "github_pat_",
+        "FAKEFAKEFAKEFAKEFAKE12_FAKEFAKEFAKE"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "github_token",
+          "sha256": [
+            "e517c11dca87e7bd"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "github-near-miss-prefix-only",
+      "class": "github_token",
+      "parts": [
+        "ghp_"
+      ],
+      "findings": []
+    },
+    {
+      "id": "github-near-miss-short",
+      "class": "github_token",
+      "parts": [
+        "ghp_",
+        "FAKEFAKE1234"
+      ],
+      "findings": []
+    },
+    {
+      "id": "gitlab-positive",
+      "class": "gitlab_token",
+      "parts": [
+        "GITLAB_TOKEN=",
+        "glpat-",
+        "FAKEFAKEFAKEFAKE-_12"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "gitlab_token",
+          "sha256": [
+            "dfe248e1656fd9f0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gitlab-near-miss-short",
+      "class": "gitlab_token",
+      "parts": [
+        "glpat-",
+        "FAKE"
+      ],
+      "findings": []
+    },
+    {
+      "id": "slack-xoxb-positive",
+      "class": "slack_token",
+      "parts": [
+        "SLACK=",
+        "xoxb-",
+        "1234567890-FAKEFAKEFAKE"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "slack_token",
+          "sha256": [
+            "d0060f4b5a0b522f"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "slack-xoxp-positive",
+      "class": "slack_token",
+      "parts": [
+        "xoxp-",
+        "1234567890-1234567890-FAKEFAKEFAKE"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "slack_token",
+          "sha256": [
+            "b8988af26af20f2e"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "slack-near-miss-prefix-only",
+      "class": "slack_token",
+      "parts": [
+        "xoxb-"
+      ],
+      "findings": []
+    },
+    {
+      "id": "slack-near-miss-wrong-letter",
+      "class": "slack_token",
+      "parts": [
+        "xoxz-",
+        "1234567890-FAKEFAKEFAKE"
+      ],
+      "note": "only a, b, p and r are token types",
+      "findings": []
+    },
+    {
+      "id": "private-key-rsa-positive",
+      "class": "private_key_block",
+      "parts": [
+        "-----BEG",
+        "IN RSA PRIVA",
+        "TE KEY-----"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "private_key_block",
+          "sha256": [
+            "8bcac7908eb95041"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "private-key-plain-positive",
+      "class": "private_key_block",
+      "parts": [
+        "-----BEG",
+        "IN PRIVA",
+        "TE KEY-----"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "private_key_block",
+          "sha256": [
+            "3021d90eb9437b2d"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "private-key-openssh-positive",
+      "class": "private_key_block",
+      "parts": [
+        "-----BEG",
+        "IN OPENSSH PRIVA",
+        "TE KEY-----"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "private_key_block",
+          "sha256": [
+            "03d104c669e3c7b6"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "private-key-near-miss-public",
+      "class": "private_key_block",
+      "parts": [
+        "-----BEG",
+        "IN PUBLIC KEY-----"
+      ],
+      "note": "a public key is not a secret",
+      "findings": []
+    },
+    {
+      "id": "private-key-near-miss-prose",
+      "class": "private_key_block",
+      "parts": [
+        "The header line is BEGIN RSA ",
+        "PRIVATE KEY between two runs of five dashes."
+      ],
+      "findings": [],
+      "note": "the header words in prose, without the dashes"
+    },
+    {
+      "id": "private-key-near-miss-no-dashes",
+      "class": "private_key_block",
+      "parts": [
+        "BEG",
+        "IN PRIVA",
+        "TE KEY"
+      ],
+      "note": "the header needs its dashes",
+      "findings": []
+    },
+    {
+      "id": "jwt-positive",
+      "class": "jwt",
+      "parts": [
+        "Authorization: Bearer ",
+        "eyJ",
+        "hbGciOiJIUzI1NiJ9",
+        ".",
+        "eyJ",
+        "zdWIiOiJmYWtlIn0",
+        ".",
+        "FAKEFAKEFAKEFAKE_-1"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "jwt",
+          "sha256": [
+            "f5b27da76f952b93"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jwt-near-miss-two-segments",
+      "class": "jwt",
+      "parts": [
+        "eyJ",
+        "hbGciOiJIUzI1NiJ9",
+        ".",
+        "eyJ",
+        "zdWIiOiJmYWtlIn0"
+      ],
+      "note": "a JWT has three segments",
+      "findings": []
+    },
+    {
+      "id": "jwt-near-miss-not-json-header",
+      "class": "jwt",
+      "parts": [
+        "abcdefghijklmnop.",
+        "eyJ",
+        "zdWIiOiJmYWtlIn0",
+        ".",
+        "FAKEFAKEFAKEFAKE"
+      ],
+      "note": "the first segment must start with eyJ",
+      "findings": []
+    },
+    {
+      "id": "escaped-newline-before-anthropic",
+      "class": "anthropic_api_key",
+      "parts": [
+        "{\"prompt\": \"use this:\\n",
+        "sk-ant-",
+        "api03-",
+        "FAKEFAKEFAKEFAKEFAKE0123",
+        "\"}"
+      ],
+      "note": "a literal backslash-n escape sits before the prefix in a JSON string; the n must not count as a word character",
+      "findings": [
+        {
+          "line": 1,
+          "class": "anthropic_api_key",
+          "sha256": [
+            "291d300418781e92"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "escaped-tab-before-aws",
+      "class": "aws_access_key_id",
+      "parts": [
+        "keys = \"a\\t",
+        "AKIA",
+        "FAKEFAKEFAKEFAKE",
+        "\""
+      ],
+      "note": "a literal backslash-t escape before the prefix",
+      "findings": [
+        {
+          "line": 1,
+          "class": "aws_access_key_id",
+          "sha256": [
+            "228e2fa94b1e1b9c"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "escaped-cr-before-gitlab",
+      "class": "gitlab_token",
+      "parts": [
+        "token: \"x\\r",
+        "glpat-",
+        "FAKEFAKEFAKEFAKE-_12",
+        "\""
+      ],
+      "note": "a literal backslash-r escape before the prefix",
+      "findings": [
+        {
+          "line": 1,
+          "class": "gitlab_token",
+          "sha256": [
+            "dfe248e1656fd9f0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "letter-n-before-anthropic-near-miss",
+      "class": "anthropic_api_key",
+      "parts": [
+        "see the n",
+        "sk-ant-",
+        "api03-",
+        "FAKEFAKEFAKEFAKEFAKE0123"
+      ],
+      "note": "an n with no backslash before it is a word character, so the prefix is inside a word",
+      "findings": []
+    },
+    {
+      "id": "underscore-before-anthropic-near-miss",
+      "class": "anthropic_api_key",
+      "parts": [
+        "task_",
+        "sk-ant-",
+        "api03-",
+        "FAKEFAKEFAKEFAKEFAKE0123"
+      ],
+      "note": "_ is a word character in both engines",
+      "findings": []
+    },
+    {
+      "id": "non-ascii-left-neighbor-aws",
+      "class": "aws_access_key_id",
+      "parts": [
+        "clé=é",
+        "AKIA",
+        "FAKEFAKEFAKEFAKE"
+      ],
+      "note": "a non-ASCII letter before the prefix is not a word character without UCP; a scanner compiled with UTF/UCP finds nothing here and fails this vector",
+      "findings": [
+        {
+          "line": 1,
+          "class": "aws_access_key_id",
+          "sha256": [
+            "228e2fa94b1e1b9c"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "non-ascii-right-neighbor-aws",
+      "class": "aws_access_key_id",
+      "parts": [
+        "AKIA",
+        "FAKEFAKEFAKEFAKE",
+        "é"
+      ],
+      "note": "the trailing word boundary holds before a non-ASCII letter without UCP",
+      "findings": [
+        {
+          "line": 1,
+          "class": "aws_access_key_id",
+          "sha256": [
+            "228e2fa94b1e1b9c"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "line-number-is-one-based-and-counts-lf",
+      "parts": [
+        "first line\nsecond line\n",
+        "AKIA",
+        "FAKEFAKEFAKEFAKE",
+        "\n"
+      ],
+      "note": "the line number is 1-based",
+      "findings": [
+        {
+          "line": 3,
+          "class": "aws_access_key_id",
+          "sha256": [
+            "228e2fa94b1e1b9c"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crlf-line-numbers",
+      "parts": [
+        "first\r\nsecond\r\n",
+        "glpat-",
+        "FAKEFAKEFAKEFAKE-_12",
+        "\r\n"
+      ],
+      "findings": [
+        {
+          "line": 3,
+          "class": "gitlab_token",
+          "sha256": [
+            "dfe248e1656fd9f0"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "two-classes-two-lines",
+      "parts": [
+        "a=",
+        "AKIA",
+        "FAKEFAKEFAKEFAKE",
+        "\nb=",
+        "xoxb-",
+        "1234567890-FAKEFAKEFAKE",
+        "\n"
+      ],
+      "findings": [
+        {
+          "line": 1,
+          "class": "aws_access_key_id",
+          "sha256": [
+            "228e2fa94b1e1b9c"
+          ]
+        },
+        {
+          "line": 2,
+          "class": "slack_token",
+          "sha256": [
+            "d0060f4b5a0b522f"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "same-class-same-line-reports-once",
+      "parts": [
+        "a=",
+        "AKIA",
+        "FAKEFAKEFAKEFAKE",
+        " b=",
+        "AKIA",
+        "FAKEFAKEFAKEFAK2"
+      ],
+      "note": "two distinct matches of one class on one line give one finding",
+      "findings": [
+        {
+          "line": 1,
+          "class": "aws_access_key_id",
+          "sha256": [
+            "228e2fa94b1e1b9c",
+            "2e5d874037fc55fc"
+          ]
+        }
+      ],
+      "rule": "one-finding-per-line-and-class"
+    },
+    {
+      "id": "clean-ordinary-prose",
+      "parts": [
+        "Store secrets with the CLI. Never paste a token into a skill. See https://example.com/docs and task-runner, disk-usage, ask-me-anything.\n"
+      ],
+      "findings": []
+    }
+  ],
+  "_format": "Each vector: id; class (the class under test, absent for cross-class vectors); parts (joined with no separator to form the text); findings (the exact list of {line, class, sha256} the scanner must return, ordered by line and then by class order; line is 1-based; one finding per line and class; sha256 lists, in order of first match, the distinct non-overlapping leftmost matches on the rewritten line, each as the first 16 lowercase hex characters of SHA-256 over the matched bytes; empty findings means the text must be clean); rule (optional, the scanner rule the vector exists to test; today only one-finding-per-line-and-class); note (optional)."
+}

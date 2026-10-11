@@ -1,0 +1,11 @@
+#!konareef-toml/v1
+[i]
+a_hex = 255
+b_octal = 493
+c_binary = 10
+d_underscored = 1000000
+e_negative = -42
+f_zero = 0
+g_i64_max = 9223372036854775807
+h_i64_min = -9223372036854775808
+[_files]

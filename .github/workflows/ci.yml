@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./... -count=1
+
+  canonical-toml10-roundtrip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python3 - <<'PY'
+          import pathlib, sys, tomllib
+          root = pathlib.Path('internal/canon/testdata/canon/v1')
+          count = 0
+          for path in sorted(root.glob('*/*/expected.canon')):
+              try:
+                  tomllib.loads(path.read_text())
+              except Exception as err:
+                  print(f'FAIL {path}: {err}', file=sys.stderr)
+                  sys.exit(1)
+              count += 1
+          print(f'ok: {count} expected.canon files parsed under TOML 1.0')
+          PY
+
+  # Build prebuilt binaries and attach them to the GitHub Release when a
+  # version tag (vX.Y.Z) is pushed. Gated on the `go` job so a red build
+  # never ships a release. Runs only for tags; normal pushes/PRs skip it.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [go]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: true
+      - name: Build release archives
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          LD="-s -w -X github.com/digitsu/konareef/internal/version.version=${VERSION}"
+          mkdir -p dist
+          for pair in darwin/amd64 darwin/arm64 linux/amd64 linux/arm64; do
+            GOOS="${pair%/*}"; GOARCH="${pair#*/}"
+            name="konareef_${VERSION}_${GOOS}_${GOARCH}"
+            CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" \
+              go build -trimpath -ldflags "$LD" -o konareef .
+            tar -czf "dist/${name}.tar.gz" konareef LICENSE README.md
+            rm -f konareef
+          done
+          ( cd dist && sha256sum *.tar.gz > checksums.txt )
+      - name: Attach archives to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/checksums.txt

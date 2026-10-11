@@ -1,0 +1,10 @@
+pod_spec_version = "0.1"
+
+[pod]
+name = "model-provider-missing"
+
+[model]
+name = "gpt-4o"
+
+[budget]
+max_sats = 1
